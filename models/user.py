@@ -18,7 +18,7 @@ def _datetime_to_iso(value: datetime | None) -> str | None:
     return value.isoformat()
 
 
-class Role(str, enum.Enum):
+class UserRole(str, enum.Enum):
     ADMIN = "admin"
     EMPLOYEE = "employee"
 
@@ -31,14 +31,14 @@ class User(Entity):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     password_hash: Mapped[int] = mapped_column(String(255), nullable=False)
     contact_number: Mapped[str] = mapped_column(String(20), nullable=True)
-    role: Mapped[Role] = mapped_column(
+    role: Mapped[UserRole] = mapped_column(
         Enum(
-            Role,
+            UserRole,
             name="role",
             values_callable=lambda enum_cls: [e.value for e in enum_cls],
         ),
         nullable=False,
-        server_default=Role.EMPLOYEE.value,
+        server_default=UserRole.EMPLOYEE.value,
     )
 
 
