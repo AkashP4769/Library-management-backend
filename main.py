@@ -1,6 +1,37 @@
-def main():
-    print("Hello from library-management!")
+from fastapi import FastAPI
+import uvicorn
+import logging
+
+from middleware import configure_middleware
+# from auth.router import router as auth_router
+from config import setting
+from exceptions.handler import register_exception_handlers
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+app = FastAPI(
+    title="Library Management App",
+    description="A simple library management application",
+    version="1.0.0",
+)
+
+configure_middleware(app)
+register_exception_handlers(app)
+
+
+@app.get("/health", tags=["health"], status_code=200)
+def health():
+    return {
+        "message": f"App is healthy. Environment: {setting.app_env}",
+        "status": "healthy",
+    }
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app, host="localhost", port=8000, reload=True)
