@@ -1,0 +1,64 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation
+docs/
+
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+
+# Local runtime files
+tmp/
+temp/
