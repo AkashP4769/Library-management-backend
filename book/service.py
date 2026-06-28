@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from book import repo
 from book.schemas import BookCreateRequest, BookUpdateRequest
+from exceptions import ConflictException, NotFoundException
 from models.book import Book
 
 
@@ -18,7 +19,7 @@ async def create_book(
     existing = await repo.get_by_isbn(db, payload.isbn)
 
     if existing:
-        raise ValueError("Book with this ISBN already exists.")
+        raise ConflictException("Book with this ISBN already exists.")
 
     return await repo.create(db, payload)
 
@@ -31,7 +32,7 @@ async def get_book(
     book = await repo.get_by_id(db, book_id)
 
     if not book:
-        raise ValueError("Book not found.")
+        raise NotFoundException("Book not found.")
 
     return book
 
@@ -50,7 +51,7 @@ async def get_by_isbn(
     book = await repo.get_by_isbn(db, isbn)
 
     if not book:
-        raise ValueError("Book not found.")
+        raise NotFoundException("Book Not Found")
 
     return book
 async def update_book(
@@ -70,7 +71,7 @@ async def update_book(
         existing = await repo.get_by_isbn(db, payload.isbn)
 
         if existing and existing.id != book.id:
-            raise ValueError("ISBN already exists.")
+            raise ConflictException("Book With this ISBN Already Exist")
 
     return await repo.update(
         db,
@@ -87,7 +88,7 @@ async def delete_book(
     book = await repo.get_by_id(db, book_id)
 
     if not book:
-        raise ValueError("Book not found.")
+        raise NotFoundException("Book Not Found")
 
     await repo.delete(
         db,
