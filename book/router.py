@@ -4,7 +4,13 @@ Book API routes.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from exceptions import (AppException,
+    NotFoundException,
+    ConflictException,
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    DBException )
 from book.schemas import (
     BookCreateRequest,
     BookResponse,
@@ -66,12 +72,8 @@ async def get_book_by_isbn(
             db=db,
             isbn=isbn,
         )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-
+    except ValueError:
+        raise NotFoundException("Book Not Found")
 @router.get(
     "/{book_id}",
     response_model=BookResponse,
@@ -88,10 +90,7 @@ async def get_book(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail=str(e),
-        )
+        raise NotFoundException("Book Not Found")
 
 
 @router.patch(
@@ -134,7 +133,4 @@ async def delete_book(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail=str(e),
-        )
+        raise NotFoundException("Book Not Found")

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import Entity
 
@@ -58,6 +58,11 @@ class Book(Entity):
     links: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+    book_copies: Mapped[list["BookCopy"]] = relationship(
+    "BookCopy",
+    back_populates="book",
+    cascade="all, delete-orphan",
     )
 
     def to_api_dict(self) -> dict[str, Any]:
