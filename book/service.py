@@ -11,7 +11,6 @@ from models.book import Book
 
 
 async def create_book(
-    
     db: AsyncSession,
     payload: BookCreateRequest,
 ) -> Book:
@@ -23,8 +22,8 @@ async def create_book(
 
     return await repo.create(db, payload)
 
+
 async def get_book(
-   
     db: AsyncSession,
     book_id: int,
 ) -> Book:
@@ -36,15 +35,15 @@ async def get_book(
 
     return book
 
+
 async def get_books(
-    
     db: AsyncSession,
 ) -> list[Book]:
 
     return await repo.get_all(db)
 
+
 async def get_by_isbn(
-    
     db: AsyncSession,
     isbn: str,
 ) -> Book:
@@ -55,19 +54,17 @@ async def get_by_isbn(
 
     return book
 
-async def get_by_isbn_by_api(
-        isbn: str
-):
+
+async def get_by_isbn_by_api(isbn: str):
     book = await repo.get_by_isbn_api(isbn)
 
     if not book:
-       
         raise NotFoundException("Book Not Found")
 
     return book
-    
+
+
 async def update_book(
-    
     db: AsyncSession,
     book_id: int,
     payload: BookUpdateRequest,
@@ -79,7 +76,6 @@ async def update_book(
         raise ValueError("Book not found.")
 
     if payload.isbn:
-
         existing = await repo.get_by_isbn(db, payload.isbn)
 
         if existing and existing.id != book.id:
@@ -91,8 +87,8 @@ async def update_book(
         payload,
     )
 
+
 async def delete_book(
-    
     db: AsyncSession,
     book_id: int,
 ) -> None:
@@ -106,3 +102,7 @@ async def delete_book(
         db,
         book,
     )
+
+
+async def search_books(db: AsyncSession, **filters):
+    return await repo.search(db, **filters)
