@@ -21,8 +21,8 @@ async def login(
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
-@router.post("/register", response_model=TokenResponse)
-async def register(
+@router.post("/signup", response_model=TokenResponse)
+async def signup(
     body: RegisterRequest, db: AsyncSession = Depends(get_db)
 ):
     user = await auth_service.register(db, body)
