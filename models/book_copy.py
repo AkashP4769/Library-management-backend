@@ -1,10 +1,8 @@
-"""
-Database model for BookCopy.
-"""
 
 from datetime import datetime
+from enum import Enum
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import  Enum as SQLEnum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import Entity
@@ -15,6 +13,12 @@ def _datetime_to_iso(value: datetime | None) -> str | None:
         return None
     return value.isoformat()
 
+
+class BookCopyStatus(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    BORROWED = "BORROWED"
+    LOST = "LOST"
+    DAMAGED = "DAMAGED"
 
 class BookCopy(Entity):
     __tablename__ = "book_copies"
@@ -35,7 +39,15 @@ class BookCopy(Entity):
         ForeignKey("shelves.id"),
         nullable=False,
     )
-
+    status: Mapped[BookCopyStatus] = mapped_column(
+    SQLEnum(
+        BookCopyStatus,
+        name="bookcopystatus",
+        values_callable=lambda enum_cls: [e.value for e in enum_cls],
+    ),
+    nullable=False,
+    server_default=BookCopyStatus.AVAILABLE.value,
+    )
     book: Mapped["Book"] = relationship(
     "Book",
     back_populates="book_copies",
@@ -51,6 +63,7 @@ class BookCopy(Entity):
             "id": self.id,
             "isbn": self.isbn,
             "shelf_id": self.shelf_id,
+            "status":self.status.value,
             "created_at": _datetime_to_iso(self.created_at),
             "updated_at": _datetime_to_iso(self.updated_at),
             "deleted_at": _datetime_to_iso(self.deleted_at),
@@ -62,4 +75,5 @@ class BookCopy(Entity):
             f"id={self.id}, "
             f"isbn={self.isbn}, "
             f"shelf_id={self.shelf_id})"
+            f"status={self.status.value}"
         )
