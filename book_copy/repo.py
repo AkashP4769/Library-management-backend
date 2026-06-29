@@ -17,7 +17,6 @@ async def create_book_copy(
     book_copy = BookCopy(
         isbn=payload.isbn,
         shelf_id=payload.shelf_id,
-        
     )
 
     db.add(book_copy)
@@ -32,21 +31,15 @@ async def get_book_copy(
     copy_id: int,
 ) -> BookCopy | None:
 
-    result = await db.execute(
-        select(BookCopy).where(BookCopy.id == copy_id)
-    )
+    result = await db.execute(select(BookCopy).where(BookCopy.id == copy_id))
 
     return result.scalar_one_or_none()
-
-
-
 
 
 async def get_book_copies(
     db: AsyncSession,
     isbn: str | None = None,
     shelf_id: int | None = None,
-    
     status: BookCopyStatus | None = None,
 ) -> list[BookCopy]:
 
@@ -57,7 +50,6 @@ async def get_book_copies(
 
     if shelf_id is not None:
         query = query.where(BookCopy.shelf_id == shelf_id)
-
 
     if status is not None:
         query = query.where(BookCopy.status == status)
@@ -97,9 +89,7 @@ async def get_book_copy_statistics(
     db: AsyncSession,
 ) -> dict:
 
-    total = await db.scalar(
-        select(func.count(BookCopy.id))
-    )
+    total = await db.scalar(select(func.count(BookCopy.id)))
 
     available = await db.scalar(
         select(func.count(BookCopy.id)).where(
@@ -114,15 +104,11 @@ async def get_book_copy_statistics(
     )
 
     damaged = await db.scalar(
-        select(func.count(BookCopy.id)).where(
-            BookCopy.status == BookCopyStatus.DAMAGED
-        )
+        select(func.count(BookCopy.id)).where(BookCopy.status == BookCopyStatus.DAMAGED)
     )
 
     lost = await db.scalar(
-        select(func.count(BookCopy.id)).where(
-            BookCopy.status == BookCopyStatus.LOST
-        )
+        select(func.count(BookCopy.id)).where(BookCopy.status == BookCopyStatus.LOST)
     )
 
     return {
@@ -132,6 +118,7 @@ async def get_book_copy_statistics(
         "damaged": damaged or 0,
         "lost": lost or 0,
     }
+
 
 async def update_status(
     db: AsyncSession,
