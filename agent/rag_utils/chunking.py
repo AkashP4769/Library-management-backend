@@ -20,19 +20,6 @@ def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50) -> list[str]
         A list of text chunks (strings), each at most chunk_size characters long.
 
     """
-    # SAMPLE RETURN:
-    #   chunk_text("ABCDEFGHIJ", chunk_size=5, overlap=2)
-    #   →  ["ABCDE", "DEFGH", "GHIJ"]
-    #   chunk_text("Hi", chunk_size=300, overlap=50)
-    #   →  ["Hi"]
-
-    # TODO 1 — Handle edge case: text shorter than chunk_size → return it as-is
-    #   in a single-element list.
-    # ---
-
-    # TODO 2 — Sliding window: start at 0, slice chunk_size chars, advance by
-    #   (chunk_size - overlap). Keep going until you've consumed the full text.
-    # ---
 
     chunks: list[str] = []
     left, right = 0, chunk_size
@@ -75,20 +62,6 @@ def chunk_all_documents(
             - "chunk_id": a unique identifier like "college_handbook.txt_chunk_0" (str)
 
     """
-    # SAMPLE RETURN:
-    #   chunk_all_documents({"file.txt": "some long text..."})
-    #   →  [
-    #       {"text": "some long", "source": "file.txt", "chunk_id": "file.txt_chunk_0"},
-    #       {"text": "ng text...", "source": "file.txt", "chunk_id": "file.txt_chunk_1"},
-    #   ]
-
-    # TODO 3 — Iterate over each (filename, text) pair in documents.
-    # ---
-
-    # TODO 4 — For each document, call chunk_text() and build the list of dicts
-    #   with "text", "source", and "chunk_id" keys.
-    # ---
-
     res: list[dict[str, str]] = []
 
     for filename, text in documents.items():

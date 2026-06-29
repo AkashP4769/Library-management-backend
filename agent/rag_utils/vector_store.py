@@ -21,13 +21,6 @@ def get_chroma_client(persist_directory: str = "chroma_db") -> Any:
         A ChromaDB PersistentClient instance.
 
     """
-    # SAMPLE RETURN:
-    #   client = get_chroma_client("chroma_db")
-    #   →  <chromadb.PersistentClient object>
-
-    # TODO 1 — Create and return a ChromaDB persistent client.
-    # Import chromadb, then use chromadb.PersistentClient(path=persist_directory).
-    # ---
 
     client = chromadb.PersistentClient(path=persist_directory)
 
@@ -46,14 +39,6 @@ def create_collection(client: any, collection_name: str = "dholakpur_helpdesk") 
         A ChromaDB Collection object.
 
     """
-    # SAMPLE RETURN:
-    #   collection = create_collection(client, "dholakpur_helpdesk")
-    #   →  <chromadb.Collection object>
-
-    # TODO 2 — Use an idempotent method to get or create the collection.
-    # client.get_or_create_collection(name=...) won't fail if it already exists.
-    # ---
-
     collection = client.get_or_create_collection(name=collection_name)
 
     return collection
@@ -75,20 +60,10 @@ def add_chunks(
         None. Chunks are added to the collection as a side effect.
 
     """
-    # After calling add_chunks(collection, chunks, embeddings):
-    #   collection.count()  →  len(chunks)
-
-    # TODO 3 — Extract texts, ids, and metadata from the chunks list.
-    # ---
-
-    # TODO 4 — Add everything to the collection in one call.
-    # The collection.add() method needs: ids, documents, embeddings, metadatas.
-    # ---
 
     ids = [chunk["chunk_id"] for chunk in chunks]
     metadatas = [{"filename": chunk["source"]} for chunk in chunks]
     texts = [chunk["text"] for chunk in chunks]
-    # text = [chunk["text"] for chunk in chunks]
 
     collection.add(
         ids=ids,
