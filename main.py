@@ -10,6 +10,7 @@ from book.router import router as book_router
 from shelf.router import router as shelf_router
 from book_copy.router import router as book_copy_router
 from review.router import router as review_router
+from borrowed_book.router import router as borrowed_book_router
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -30,6 +31,7 @@ app.include_router(book_router)
 app.include_router(shelf_router)
 app.include_router(book_copy_router)
 app.include_router(review_router)
+app.include_router(borrowed_book_router)
 
 @app.get("/health", tags=["health"], status_code=200)
 def health():

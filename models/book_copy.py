@@ -57,6 +57,10 @@ class BookCopy(Entity):
         "Shelf",
         back_populates="book_copies",
     )
+    borrowed_books: Mapped[list["BorrowedBook"]] = relationship(
+    "BorrowedBook",
+    back_populates="book_copy",
+    )
 
     def to_api_dict(self) -> dict:
         return {
