@@ -49,6 +49,10 @@ class User(Entity):
     "BorrowedBook",
     back_populates="user",
     )
+    requests: Mapped[list["Request"]] = relationship(
+    "Request",
+    back_populates="requester",
+    )
 
 
     def to_api_dict(self) -> dict[str, Any]:
