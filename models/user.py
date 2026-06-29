@@ -40,6 +40,11 @@ class User(Entity):
         nullable=False,
         server_default=UserRole.EMPLOYEE.value,
     )
+    reviews: Mapped[list["Review"]] = relationship(
+    "Review",
+    back_populates="user",
+    cascade="all, delete-orphan",
+    )
 
 
     def to_api_dict(self) -> dict[str, Any]:
