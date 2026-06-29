@@ -4,6 +4,7 @@ Database operations for Review.
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from models.review import Review
 from review.schema import (
@@ -46,10 +47,7 @@ async def get_reviews(
     if user_id is not None:
         stmt = stmt.where(Review.user_id == user_id)
 
-    stmt = (
-        stmt.offset((page - 1) * limit)
-        .limit(limit)
-    )
+    stmt = stmt.offset((page - 1) * limit).limit(limit)
 
     result = await db.execute(stmt)
 
@@ -61,14 +59,22 @@ async def get_review(
     review_id: int,
 ) -> Review | None:
 
-    stmt = (
-        select(Review)
-        .where(Review.id == review_id)
-    )
+    stmt = select(Review).where(Review.id == review_id)
 
     result = await db.execute(stmt)
 
     return result.scalar_one_or_none()
+
+
+async def get_book_review(
+    db: AsyncSession,
+    isbn: str,
+) -> list[Review] | None:
+    print("ISBN: ", isbn)
+    stmt = select(Review).options(selectinload(Review.user)).where(Review.isbn == isbn)
+    print("stmt ", stmt)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 async def update_review(

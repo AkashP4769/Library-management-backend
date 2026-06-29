@@ -12,6 +12,7 @@ from review.schema import (
     ReviewCreateRequest,
     ReviewResponse,
     ReviewUpdateRequest,
+    ReviewBookResponse,
 )
 
 router = APIRouter(
@@ -75,6 +76,22 @@ async def get_review(
 
     except ValueError:
         raise NotFoundException("Review Not Found")
+
+
+@router.get("/book/{isbn}", response_model=list[ReviewBookResponse])
+async def get_book_review(
+    isbn: str,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        print("route isbn: ", isbn)
+        return await service.get_book_review(
+            db=db,
+            isbn=isbn,
+        )
+
+    except ValueError:
+        raise NotFoundException("No reviews for this book")
 
 
 @router.patch(
