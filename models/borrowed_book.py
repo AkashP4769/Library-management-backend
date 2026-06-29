@@ -84,6 +84,11 @@ class BorrowedBook(Entity):
         back_populates="borrowed_books",
     )
 
+    request: Mapped["Request"] = relationship(
+    "Request",
+    back_populates="borrowed_book",
+    )
+
     def to_api_dict(self) -> dict:
         return {
             "id": str(self.id),
