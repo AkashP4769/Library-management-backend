@@ -54,6 +54,18 @@ async def get_by_isbn(
         raise NotFoundException("Book Not Found")
 
     return book
+
+async def get_by_isbn_by_api(
+        isbn: str
+):
+    book = await repo.get_by_isbn_api(isbn)
+
+    if not book:
+       
+        raise NotFoundException("Book Not Found")
+
+    return book
+    
 async def update_book(
     
     db: AsyncSession,
