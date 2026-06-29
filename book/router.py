@@ -1,6 +1,4 @@
-"""
-Book API routes.
-"""
+
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +13,7 @@ from book.schemas import (
     BookCreateRequest,
     BookResponse,
     BookUpdateRequest,
+    BookAPIResponse
 )
 from book import service
 from database.connection import get_db
@@ -58,6 +57,21 @@ async def get_books(
 ):
 
     return await service.get_books(db)
+@router.get(
+        "/isbn/api/{isbn}",
+        response_model=BookAPIResponse
+)
+async def get_book_by_isbn_by_api(
+     isbn: str,
+):
+    try:
+        return await service.get_by_isbn_by_api(
+            isbn=isbn
+        )
+    except :
+        print("yessssss")
+        raise NotFoundException("Book Not Found")
+
 
 @router.get(
     "/isbn/{isbn}",

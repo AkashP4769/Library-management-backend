@@ -46,3 +46,13 @@ class BookResponse(BookBase):
     deleted_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
+
+class BookAPIResponse(BaseModel):
+    """Schema returned by OpenLibrary API"""
+    isbn: str = Field(..., max_length=20)
+    title: str = Field(..., max_length=255)
+    author: str = Field(..., max_length=255)
+    pages:str | None = Field(default=None, max_length=255)
+    publisher: str | None = Field(default=None, max_length=255)
+    language: str | None = Field(default=None, max_length=50)
+    cover_urls: list[str | None] | None = None
