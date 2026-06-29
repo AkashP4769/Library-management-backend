@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.review import Review
 from review import repo
 from review.schema import (
+    ReviewBookResponse,
     ReviewCreateRequest,
     ReviewUpdateRequest,
 )
 from exceptions import NotFoundException
 from book import repo as book_repo
+
 
 async def create_review(
     db: AsyncSession,
@@ -39,6 +41,7 @@ async def create_review(
         db=db,
         payload=payload,
     )
+
 
 async def get_reviews(
     db: AsyncSession,
@@ -77,6 +80,31 @@ async def get_review(
         raise ValueError("Review Not Found")
 
     return review
+
+
+async def get_book_review(
+    db: AsyncSession,
+    isbn: str,
+) -> list[ReviewBookResponse]:
+
+    reviews = await repo.get_book_review(
+        db=db,
+        isbn=isbn,
+    )
+    print("ser isbn: ", isbn)
+    if not reviews:
+        raise ValueError("Review Not Found")
+
+    return [
+        ReviewBookResponse(
+            name=review.user.name,  # <-- comes from selectinload
+            content=review.content,
+            rating=review.rating,
+            created_at=review.created_at,
+            updated_at=review.updated_at,
+        )
+        for review in reviews
+    ]
 
 
 async def update_review(
