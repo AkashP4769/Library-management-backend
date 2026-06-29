@@ -132,3 +132,15 @@ async def get_book_copy_statistics(
         "damaged": damaged or 0,
         "lost": lost or 0,
     }
+
+async def update_status(
+    db: AsyncSession,
+    book_copy: BookCopy,
+    status: BookCopyStatus,
+) -> BookCopy:
+    book_copy.status = status
+
+    await db.commit()
+    await db.refresh(book_copy)
+
+    return book_copy

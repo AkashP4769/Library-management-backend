@@ -1,21 +1,15 @@
 from datetime import datetime
-
 from sqlalchemy import DateTime, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
-
 from database import Base
 
 
 def datetime_to_iso(value: datetime | None) -> str | None:
-    """JSON-safe ISO 8601 for API payloads."""
     if value is None:
         return None
     return value.isoformat()
 
-
 class Entity(Base):
-    """Shared persistence fields for all domain entities."""
-
     __abstract__ = True
 
     id: Mapped[int] = mapped_column(
