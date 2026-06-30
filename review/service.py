@@ -4,41 +4,52 @@ Business logic for Review.
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit import service as audit_service
+from book import repo as book_repo
+from exceptions import NotFoundException
+from models.audit import AuditAction
 from models.review import Review
 from review import repo
 from review.schema import (
+    ReviewBookResponse,
     ReviewCreateRequest,
     ReviewUpdateRequest,
 )
-from exceptions import NotFoundException
-from book import repo as book_repo
+
 
 async def create_review(
     db: AsyncSession,
     payload: ReviewCreateRequest,
+    actor_user_id: int,
 ) -> Review:
     """
     Create a review.
     """
+
     book = await book_repo.get_by_isbn(
         db=db,
         isbn=payload.isbn,
     )
-    # user = await user_repo.get_user(
-    # db=db,
-    # user_id=payload.user_id,
-    # )
-
-    # if user is None:
-    #     raise NotFoundException("User not found.")
 
     if book is None:
-        raise ValueError("Book with this ISBN does not exist.")
+        raise NotFoundException("Book with this ISBN does not exist.")
 
-    return await repo.create_review(
+    review = await repo.create_review(
         db=db,
         payload=payload,
     )
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.CREATE,
+        entity_type="REVIEW",
+        entity_id=str(review.id),
+        new_value=review.to_api_dict(),
+    )
+
+    return review
+
 
 async def get_reviews(
     db: AsyncSession,
@@ -74,15 +85,41 @@ async def get_review(
     )
 
     if review is None:
-        raise ValueError("Review Not Found")
+        raise NotFoundException("Review Not Found")
 
     return review
+
+
+async def get_book_review(
+    db: AsyncSession,
+    isbn: str,
+) -> list[ReviewBookResponse]:
+
+    reviews = await repo.get_book_review(
+        db=db,
+        isbn=isbn,
+    )
+
+    if not reviews:
+        raise NotFoundException("Review Not Found")
+
+    return [
+        ReviewBookResponse(
+            name=review.user.name,
+            content=review.content,
+            rating=review.rating,
+            created_at=review.created_at,
+            updated_at=review.updated_at,
+        )
+        for review in reviews
+    ]
 
 
 async def update_review(
     db: AsyncSession,
     review_id: int,
     payload: ReviewUpdateRequest,
+    actor_user_id: int,
 ) -> Review:
     """
     Update a review.
@@ -94,18 +131,33 @@ async def update_review(
     )
 
     if review is None:
-        raise ValueError("Review Not Found")
+        raise NotFoundException("Review Not Found")
 
-    return await repo.update_review(
+    old_value = review.to_api_dict().copy()
+
+    updated_review = await repo.update_review(
         db=db,
         review=review,
         payload=payload,
     )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.UPDATE,
+        entity_type="REVIEW",
+        entity_id=str(updated_review.id),
+        old_value=old_value,
+        new_value=updated_review.to_api_dict(),
+    )
+
+    return updated_review
+
 
 async def delete_review(
     db: AsyncSession,
     review_id: int,
+    actor_user_id: int,
 ) -> None:
     """
     Delete a review.
@@ -117,9 +169,20 @@ async def delete_review(
     )
 
     if review is None:
-        raise ValueError("Review Not Found")
+        raise NotFoundException("Review Not Found")
+
+    old_value = review.to_api_dict().copy()
 
     await repo.delete_review(
         db=db,
         review=review,
+    )
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.DELETE,
+        entity_type="REVIEW",
+        entity_id=str(review.id),
+        old_value=old_value,
     )

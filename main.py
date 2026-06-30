@@ -2,6 +2,8 @@ from fastapi import FastAPI
 import uvicorn
 import logging
 
+from fastapi.staticfiles import StaticFiles
+
 from middleware import configure_middleware
 from auth.router import router as auth_router
 from config import setting
@@ -13,6 +15,8 @@ from agent.router import router as agent_router
 from book_copy.router import router as book_copy_router
 from review.router import router as review_router
 from borrowed_book.router import router as borrowed_book_router
+
+from audit.router import router as audit_router
 
 from notifications.router import router as notification_router
 
@@ -38,6 +42,7 @@ app.include_router(agent_router)
 app.include_router(book_copy_router)
 app.include_router(review_router)
 app.include_router(borrowed_book_router)
+app.include_router(audit_router)
 app.include_router(notification_router)
 
 
@@ -47,6 +52,9 @@ def health():
         "message": f"App is healthy. Environment: {setting.app_env}",
         "status": "healthy",
     }
+
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 if __name__ == "__main__":

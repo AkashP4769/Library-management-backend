@@ -40,3 +40,28 @@ class BookCopyStatisticsResponse(BaseModel):
     borrowed: int
     damaged: int
     lost: int
+
+class InventoryResponse(BaseModel):
+    isbn: str
+
+    title: str
+    author: str
+
+    genre: str | None = None
+    publisher: str | None = None
+    language: str | None = None
+
+    shelf_id: int
+    shelf_code: str
+    office_location: str
+
+    total_copies: int
+    available_copies: int
+    borrowed_copies: int
+
+    average_rating: float | None = None
+
+
+class InventoryListResponse(BaseModel):
+    inventory: list[InventoryResponse]
+    total: int

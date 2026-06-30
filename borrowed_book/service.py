@@ -2,28 +2,96 @@
 Business logic for BorrowedBook.
 """
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit import service as audit_service
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo
-from models.borrowed_book import BorrowStatus
-from borrowed_book.schema import BorrowBookRequest
-from models.borrowed_book import BorrowedBook
-from user import repository as user_repo
+from borrowed_book.schema import BorrowBookRequest, BorrowedBookDetailsResponse
+from exceptions import BadRequestException, ConflictException, DBException, NotFoundException
+from models.audit import AuditAction
 from models.book_copy import BookCopyStatus
+from models.borrowed_book import BorrowStatus, BorrowedBook
+from user import repository as user_repo
+
+async def get_borrowed_books_details(
+    db: AsyncSession,
+    user_id: int | None = None,
+    status: BorrowStatus | None = None,
+    page: int = 1,
+    limit: int = 10,
+) -> list[BorrowedBookDetailsResponse]:
+
+    try:
+        if page < 1:
+            raise BadRequestException("Page number must be greater than 0.")
+
+        if limit < 1:
+            raise BadRequestException("Limit must be greater than 0.")
+
+        borrowed_books = await repo.get_borrowed_books_details(
+            db=db,
+            user_id=user_id,
+            status=status,
+            page=page,
+            limit=limit,
+        )
+
+        if not borrowed_books:
+            raise NotFoundException("No borrowed books found.")
+
+        return [
+            BorrowedBookDetailsResponse(
+                id=borrowed_book.id,
+                user_id=borrowed_book.user.id,
+                user_name=borrowed_book.user.name,
+                user_email=borrowed_book.user.email,
+                book_copy_id=borrowed_book.book_copy.id,
+                isbn=borrowed_book.book_copy.book.isbn,
+                title=borrowed_book.book_copy.book.title,
+                author=borrowed_book.book_copy.book.author,
+                genre=borrowed_book.book_copy.book.genre,
+                publisher=borrowed_book.book_copy.book.publisher,
+                language=borrowed_book.book_copy.book.language,
+                shelf_id=borrowed_book.book_copy.shelf.id,
+                shelf_code=borrowed_book.book_copy.shelf.shelf_code,
+                office_location=borrowed_book.book_copy.shelf.office_location,
+                borrowed_at=borrowed_book.borrowed_at,
+                due_date=borrowed_book.due_date,
+                returned_at=borrowed_book.returned_at,
+                status=borrowed_book.status,
+                renewal_count=borrowed_book.renewal_count,
+                fine_amount=float(borrowed_book.fine_amount),
+                created_at=borrowed_book.created_at,
+                updated_at=borrowed_book.updated_at,
+            )
+            for borrowed_book in borrowed_books
+        ]
+
+    except (BadRequestException, NotFoundException):
+        raise
+
+    except SQLAlchemyError as e:
+        raise DBException(f"Failed to fetch borrowed book details: {e}")
+
 
 async def borrow_book(
     db: AsyncSession,
     payload: BorrowBookRequest,
+    actor_user_id: int,
 ) -> BorrowedBook:
 
-    book_copy = await book_copy_repo.get_book_copy(
+    book_copy = await book_copy_repo.find_available_book_copy(
         db=db,
-        book_copy_id=payload.book_copy_id,
+        isbn=payload.isbn,
+        shelf_id=payload.shelf_id,
     )
 
     if book_copy is None:
-        raise ValueError("Book copy not found.")
+        raise NotFoundException(
+            "No available copy found for the given ISBN and shelf."
+        )
 
     user = await user_repo.get_user(
         db=db,
@@ -31,22 +99,20 @@ async def borrow_book(
     )
 
     if user is None:
-        raise ValueError("User not found.")
-
-    if book_copy.status != BookCopyStatus.AVAILABLE:
-        raise ValueError("Book copy is not available.")
+        raise NotFoundException("User not found.")
 
     existing = await repo.get_active_borrow(
         db=db,
-        book_copy_id=payload.book_copy_id,
+        book_copy_id=book_copy.id,
     )
 
     if existing:
-        raise ValueError("Book copy is already borrowed.")
+        raise ConflictException("Book copy is already borrowed.")
 
     borrowed_book = await repo.borrow_book(
         db=db,
-        payload=payload,
+        book_copy_id=book_copy.id,
+        user_id=payload.user_id,
     )
 
     await book_copy_repo.update_status(
@@ -55,7 +121,23 @@ async def borrow_book(
         status=BookCopyStatus.BORROWED,
     )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.BORROW,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value={
+            "book_copy_status": BookCopyStatus.AVAILABLE.value,
+        },
+        new_value={
+            "book_copy_status": BookCopyStatus.BORROWED.value,
+            "borrow": borrowed_book.to_api_dict(),
+        },
+    )
+
     return borrowed_book
+
 
 async def get_borrowed_books(
     db: AsyncSession,
@@ -64,9 +146,6 @@ async def get_borrowed_books(
     page: int = 1,
     limit: int = 10,
 ) -> list[BorrowedBook]:
-    """
-    Get borrowed books.
-    """
 
     return await repo.get_borrowed_books(
         db=db,
@@ -81,9 +160,6 @@ async def get_borrowed_book(
     db: AsyncSession,
     borrow_id: int,
 ) -> BorrowedBook:
-    """
-    Get borrowed book by ID.
-    """
 
     borrowed_book = await repo.get_borrowed_book(
         db=db,
@@ -91,7 +167,7 @@ async def get_borrowed_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     return borrowed_book
 
@@ -99,6 +175,7 @@ async def get_borrowed_book(
 async def return_book(
     db: AsyncSession,
     borrow_id: int,
+    actor_user_id: int,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -107,10 +184,12 @@ async def return_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     if borrowed_book.status == BorrowStatus.RETURNED:
-        raise ValueError("Book already returned.")
+        raise ConflictException("Book already returned.")
+
+    old_value = borrowed_book.to_api_dict().copy()
 
     borrowed_book = await repo.return_book(
         db=db,
@@ -129,15 +208,24 @@ async def return_book(
             status=BookCopyStatus.AVAILABLE,
         )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.RETURN,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value=old_value,
+        new_value=borrowed_book.to_api_dict(),
+    )
+
     return borrowed_book
+
 
 async def renew_book(
     db: AsyncSession,
     borrow_id: int,
+    actor_user_id: int,
 ) -> BorrowedBook:
-    """
-    Renew a borrowed book.
-    """
 
     borrowed_book = await repo.get_borrowed_book(
         db=db,
@@ -145,18 +233,32 @@ async def renew_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     if borrowed_book.status == BorrowStatus.RETURNED:
-        raise ValueError("Returned books cannot be renewed.")
+        raise ConflictException("Returned books cannot be renewed.")
 
     if borrowed_book.status == BorrowStatus.OVERDUE:
-        raise ValueError("Overdue books cannot be renewed.")
+        raise ConflictException("Overdue books cannot be renewed.")
 
     if borrowed_book.renewal_count >= 3:
-        raise ValueError("Maximum renewal limit reached.")
+        raise ConflictException("Maximum renewal limit reached.")
 
-    return await repo.renew_book(
+    old_value = borrowed_book.to_api_dict().copy()
+
+    borrowed_book = await repo.renew_book(
         db=db,
         borrowed_book=borrowed_book,
     )
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.UPDATE,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value=old_value,
+        new_value=borrowed_book.to_api_dict(),
+    )
+
+    return borrowed_book

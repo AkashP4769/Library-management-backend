@@ -53,10 +53,11 @@ class Book(Entity):
         nullable=True,
     )
 
-    links: Mapped[str | None] = mapped_column(
+    image_url: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
+    
     book_copies: Mapped[list["BookCopy"]] = relationship(
         "BookCopy",
         back_populates="book",
@@ -79,7 +80,7 @@ class Book(Entity):
             "publisher": self.publisher,
             "language": self.language,
             "description": self.description,
-            "links": self.links,
+            "image_url": self.image_url,
             "created_at": _datetime_to_iso(self.created_at),
             "updated_at": _datetime_to_iso(self.updated_at),
             "deleted_at": _datetime_to_iso(self.deleted_at),

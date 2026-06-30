@@ -50,6 +50,11 @@ class User(Entity):
         back_populates="user",
     )
 
+    audit_logs: Mapped[list["AuditLog"]] = relationship(
+        "AuditLog",
+        back_populates="user",
+    )
+
     received_notifications: Mapped[list["Notifications"]] = relationship(
         "Notifications",
         foreign_keys="Notifications.receiver_id",
