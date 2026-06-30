@@ -22,7 +22,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 async def create_book(
     db: AsyncSession,
     payload: BookCreateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Book:
 
     existing = await repo.get_by_isbn(db, payload.isbn)
