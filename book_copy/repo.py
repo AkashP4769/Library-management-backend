@@ -23,24 +23,21 @@ async def create_book_copy(
 ) -> list[BookCopy]:
 
     book_copies = []
-    for bulk_request in payload:
-        book_copies.extend([
-            BookCopy(
-                isbn=bulk_request.isbn,
-                shelf_id=bulk_request.shelf_id,
+    for item in payload:
+        for _ in range(item.quantity):
+            book_copies.append(
+                BookCopy(
+                    isbn=item.isbn,
+                    shelf_id=item.shelf_id,
+                )
             )
-            for _ in range(bulk_request.quantity)
-        ])
 
     db.add_all(book_copies)
     await db.commit()
-    refreshed_book_copies = []
     for book_copy in book_copies:
         await db.refresh(book_copy)
-        refreshed_book_copies.append(book_copy)
 
-    return refreshed_book_copies
-
+    return book_copies
 
 async def get_book_copy(
     db: AsyncSession,
@@ -187,6 +184,7 @@ async def get_inventory(
             Book.genre,
             Book.publisher,
             Book.language,
+            Book.image_url,
 
             Shelf.id.label("shelf_id"),
             Shelf.shelf_code,
@@ -237,6 +235,7 @@ async def get_inventory(
             Book.genre,
             Book.publisher,
             Book.language,
+            Book.image_url,
 
             Shelf.id,
             Shelf.shelf_code,

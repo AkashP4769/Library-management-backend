@@ -64,6 +64,8 @@ async def get_inventory(
         limit=limit,
     )
 
+    print("Inventory:", inventory)
+
     return InventoryListResponse(
         inventory=[
             InventoryResponse(
@@ -73,6 +75,7 @@ async def get_inventory(
                 genre=row.genre,
                 publisher=row.publisher,
                 language=row.language,
+                image_url=row.image_url,
                 shelf_id=row.shelf_id,
                 shelf_code=row.shelf_code,
                 office_location=row.office_location,
