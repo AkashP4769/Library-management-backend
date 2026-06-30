@@ -43,6 +43,8 @@ async def create_audit_log(
         audit_log=audit_log,
     )
 
+    
+
 
 async def get_audit_log(
     db: AsyncSession,
