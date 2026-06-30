@@ -23,9 +23,7 @@ async def get_circulation_trends(
 
 
 @router.get("/recent-activities")
-async def get_recent_activities(
-    db: AsyncSession = Depends(get_db),
-):
+async def get_recent_activities(db: AsyncSession = Depends(get_db), range: str = "30d"):
     return await service.get_recent_activities(db)
 
 
@@ -41,3 +39,10 @@ async def get_top_books(
     db: AsyncSession = Depends(get_db),
 ):
     return await service.get_top_books(db)
+
+
+@router.get("/shelf-sage")
+async def get_shelf_sage(
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.get_shelf_sage(db)

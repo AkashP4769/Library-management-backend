@@ -1,10 +1,11 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, case
 from datetime import datetime, timedelta
 
 from models.borrowed_book import BorrowedBook, BorrowStatus
 from models.book_copy import BookCopy
 from models.book import Book
 from models.user import User
+from models.shelf import Shelf
 
 
 async def count_total_borrowed(db):
@@ -66,14 +67,18 @@ async def get_circulation_trends(db, range):
         .group_by(func.date(BorrowedBook.borrowed_at))
         .order_by(func.date(BorrowedBook.borrowed_at))
     )
+
     borrowed_stmt = (
-        select(func.date(BorrowedBook.returned_at), func.count(BorrowedBook.id))
+        select(
+            func.date(BorrowedBook.borrowed_at),
+            func.count(BorrowedBook.id),
+        )
         .where(
-            BorrowedBook.returned_at >= since,
+            BorrowedBook.borrowed_at >= since,
             BorrowedBook.status == BorrowStatus.BORROWED,
         )
-        .group_by(func.date(BorrowedBook.returned_at))
-        .order_by(func.date(BorrowedBook.returned_at))
+        .group_by(func.date(BorrowedBook.borrowed_at))
+        .order_by(func.date(BorrowedBook.borrowed_at))
     )
 
     overdue_stmt = (
@@ -113,12 +118,44 @@ async def get_circulation_trends(db, range):
     ]
 
 
-async def get_recent_activities(db):
-    stmt = select(BorrowedBook).order_by(BorrowedBook.created_at.desc()).limit(10)
+async def get_recent_activities(db, range):
+    days_map = {
+        "7d": 7,
+        "30d": 30,
+        "90d": 90,
+    }
 
-    result = await db.scalars(stmt)
+    since = datetime.utcnow() - timedelta(days=days_map[range])
 
-    return result.all()
+    stmt = (
+        select(BorrowedBook, User, BookCopy, Book)
+        .join(User, BorrowedBook.user_id == User.id)
+        .join(BookCopy, BorrowedBook.book_copy_id == BookCopy.id)
+        .join(Book, BookCopy.isbn == Book.isbn)
+        .where(BorrowedBook.created_at >= since)
+        .order_by(BorrowedBook.created_at.desc())
+        .limit(10)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "id": borrow.id,
+            "user": user.name,
+            "book_copy_id": borrow.book_copy_id,
+            "status": borrow.status,
+            "date": borrow.borrowed_at,
+            "title": book.title,
+            "action": "Borrowed"
+            if borrow.status == BorrowStatus.BORROWED
+            else "Returned",
+            "due_date": borrow.due_date
+            if borrow.status == BorrowStatus.BORROWED
+            else "-",
+        }
+        for borrow, user, bookcopy, book in rows
+    ]
 
 
 async def get_inventory_summary(db):
@@ -153,6 +190,59 @@ async def get_top_books(db):
         {
             "title": row[0],
             "borrow_count": row[1],
+        }
+        for row in rows
+    ]
+
+
+async def get_shelf_sage(db):
+    stmt = (
+        select(
+            Shelf.id,
+            Shelf.shelf_code,
+            Shelf.office_location,
+            func.count(BookCopy.id).label("total_books"),
+            func.sum(
+                case(
+                    (BookCopy.status == "AVAILABLE", 1),
+                    else_=0,
+                )
+            ).label("available_books"),
+            func.sum(
+                case(
+                    (BookCopy.status == "BORROWED", 1),
+                    else_=0,
+                )
+            ).label("borrowed_books"),
+            func.sum(
+                case(
+                    (BorrowedBook.status == BorrowStatus.OVERDUE, 1),
+                    else_=0,
+                )
+            ).label("overdue_books"),
+        )
+        .outerjoin(BookCopy, BookCopy.shelf_id == Shelf.id)
+        .outerjoin(BorrowedBook, BorrowedBook.book_copy_id == BookCopy.id)
+        .group_by(Shelf.id, Shelf.shelf_code, Shelf.office_location)
+    )
+
+    result = await db.execute(stmt)
+    rows = result.mappings().all()
+
+    return [
+        {
+            "shelf_id": row["id"],
+            "shelf_name": f"{row['shelf_code']} - {row['office_location']}",
+            "total_books": row["total_books"] or 0,
+            "available_books": row["available_books"] or 0,
+            "borrowed_books": row["borrowed_books"] or 0,
+            "overdue_books": row["overdue_books"] or 0,
+            "utilization_rate": (
+                round(
+                    ((row["borrowed_books"] or 0) / (row["total_books"] or 1)) * 100,
+                    2,
+                )
+            ),
         }
         for row in rows
     ]
