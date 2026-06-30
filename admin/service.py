@@ -20,8 +20,8 @@ async def get_circulation_trends(db: AsyncSession, range: str):
     return await repo.get_circulation_trends(db, range)
 
 
-async def get_recent_activities(db: AsyncSession):
-    return await repo.get_recent_activities(db)
+async def get_recent_activities(db: AsyncSession, range: str = "30d"):
+    return await repo.get_recent_activities(db, range)
 
 
 async def get_inventory_summary(db: AsyncSession):
@@ -30,3 +30,7 @@ async def get_inventory_summary(db: AsyncSession):
 
 async def get_top_books(db: AsyncSession):
     return await repo.get_top_books(db)
+
+
+async def get_shelf_sage(db: AsyncSession):
+    return await repo.get_shelf_sage(db)
