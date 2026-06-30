@@ -15,7 +15,17 @@ class BookCopyCreateRequest(BaseModel):
     isbn: str
     shelf_id: int
     
+class BulkBookCopyCreateRequest(BaseModel):
+    isbn: str
+    shelf_id: int
+    quantity: int
 
+class BulkBookCopyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    isbn: str
+    shelf_id: int
+    quantity: int
 
 class BookCopyUpdateRequest(BaseModel):
     shelf_id: int | None = None

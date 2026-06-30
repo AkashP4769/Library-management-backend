@@ -16,6 +16,8 @@ from book_copy.schema import (
     BookCopyResponse,
     BookCopyStatisticsResponse,
     BookCopyStatus,
+    BulkBookCopyCreateRequest,
+    BulkBookCopyResponse,
 )
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,11 +91,11 @@ async def get_inventory(
 
 @router.post(
     "",
-    response_model=BookCopyResponse,
+    response_model=list[BulkBookCopyResponse],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book_copy(
-    payload: BookCopyCreateRequest,
+    payload: list[BulkBookCopyCreateRequest],
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
