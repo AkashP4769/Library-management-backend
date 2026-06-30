@@ -5,7 +5,7 @@ from models.shelf import Shelf
 from models.book_copy import BookCopy
 from models.review import Review
 from models.borrowed_book import BorrowedBook
-from models.requests import Request
+from models.notifications import Notifications
 
 __all__ = [
     "Entity",
@@ -15,5 +15,5 @@ __all__ = [
     "BookCopy",
     "Review",
     "BorrowedBook",
-    "Request",
+    "Notifications",
 ]

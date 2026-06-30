@@ -1,8 +1,9 @@
-
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import  Enum as SQLEnum, ForeignKey, Integer, String
+from requests import Request
+
+from sqlalchemy import Enum as SQLEnum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import Entity
@@ -19,6 +20,7 @@ class BookCopyStatus(str, Enum):
     BORROWED = "BORROWED"
     LOST = "LOST"
     DAMAGED = "DAMAGED"
+
 
 class BookCopy(Entity):
     __tablename__ = "book_copies"
@@ -40,17 +42,17 @@ class BookCopy(Entity):
         nullable=False,
     )
     status: Mapped[BookCopyStatus] = mapped_column(
-    SQLEnum(
-        BookCopyStatus,
-        name="bookcopystatus",
-        values_callable=lambda enum_cls: [e.value for e in enum_cls],
-    ),
-    nullable=False,
-    server_default=BookCopyStatus.AVAILABLE.value,
+        SQLEnum(
+            BookCopyStatus,
+            name="bookcopystatus",
+            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+        ),
+        nullable=False,
+        server_default=BookCopyStatus.AVAILABLE.value,
     )
     book: Mapped["Book"] = relationship(
-    "Book",
-    back_populates="book_copies",
+        "Book",
+        back_populates="book_copies",
     )
 
     shelf: Mapped["Shelf"] = relationship(
@@ -58,8 +60,13 @@ class BookCopy(Entity):
         back_populates="book_copies",
     )
     borrowed_books: Mapped[list["BorrowedBook"]] = relationship(
-    "BorrowedBook",
-    back_populates="book_copy",
+        "BorrowedBook",
+        back_populates="book_copy",
+    )
+
+    notifications: Mapped[list["Notifications"]] = relationship(
+        "Notifications",
+        back_populates="book_copy",
     )
 
     def to_api_dict(self) -> dict:
@@ -67,7 +74,7 @@ class BookCopy(Entity):
             "id": self.id,
             "isbn": self.isbn,
             "shelf_id": self.shelf_id,
-            "status":self.status.value,
+            "status": self.status.value,
             "created_at": _datetime_to_iso(self.created_at),
             "updated_at": _datetime_to_iso(self.updated_at),
             "deleted_at": _datetime_to_iso(self.deleted_at),

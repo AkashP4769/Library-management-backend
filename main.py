@@ -14,7 +14,7 @@ from book_copy.router import router as book_copy_router
 from review.router import router as review_router
 from borrowed_book.router import router as borrowed_book_router
 
-from request.router import router as request_router
+from notifications.router import router as notification_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,7 +38,7 @@ app.include_router(agent_router)
 app.include_router(book_copy_router)
 app.include_router(review_router)
 app.include_router(borrowed_book_router)
-app.include_router(request_router)
+app.include_router(notification_router)
 
 
 @app.get("/health", tags=["health"], status_code=200)

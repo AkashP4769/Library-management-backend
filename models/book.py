@@ -1,5 +1,3 @@
-
-
 from datetime import datetime
 from typing import Any
 
@@ -60,18 +58,15 @@ class Book(Entity):
         nullable=True,
     )
     book_copies: Mapped[list["BookCopy"]] = relationship(
-    "BookCopy",
-    back_populates="book",
-    cascade="all, delete-orphan",
+        "BookCopy",
+        back_populates="book",
+        cascade="all, delete-orphan",
     )
+
     reviews: Mapped[list["Review"]] = relationship(
-    "Review",
-    back_populates="book",
-    cascade="all, delete-orphan",
-    )
-    requests: Mapped[list["Request"]] = relationship(
-    "Request",
-    back_populates="book",
+        "Review",
+        back_populates="book",
+        cascade="all, delete-orphan",
     )
 
     def to_api_dict(self) -> dict[str, Any]:
