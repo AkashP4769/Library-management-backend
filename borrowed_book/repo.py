@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from book_copy.schema import BookCopyStatus
 from models.book_copy import BookCopy
 from models.borrowed_book import BorrowStatus
 from borrowed_book.schema import BorrowBookRequest
@@ -49,14 +50,39 @@ async def get_borrowed_books_details(
     result = await db.execute(query)
 
     return result.scalars().unique().all()
+async def find_available_book_copy(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int,
+) -> BookCopy | None:
+    """
+    Find the first available copy for the given ISBN on the specified shelf.
+    """
+
+    stmt = (
+        select(BookCopy)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.shelf_id == shelf_id,
+            BookCopy.status == BookCopyStatus.AVAILABLE,
+        )
+        .order_by(BookCopy.id)
+        .limit(1)
+    )
+
+    result = await db.execute(stmt)
+
+    return result.scalar_one_or_none()
 
 async def borrow_book(
     db: AsyncSession,
-    payload: BorrowBookRequest,
+    book_copy_id: int,
+    user_id: int,
 ) -> BorrowedBook:
+
     borrowed_book = BorrowedBook(
-        book_copy_id=payload.book_copy_id,
-        user_id=payload.user_id,
+        book_copy_id=book_copy_id,
+        user_id=user_id,
         borrowed_at=datetime.utcnow(),
         due_date=datetime.utcnow() + timedelta(days=14),
         status=BorrowStatus.BORROWED,
