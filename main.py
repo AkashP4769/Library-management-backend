@@ -20,6 +20,8 @@ from audit.router import router as audit_router
 
 from notifications.router import router as notification_router
 
+from admin.router import router as admin_router
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -44,6 +46,7 @@ app.include_router(review_router)
 app.include_router(borrowed_book_router)
 app.include_router(audit_router)
 app.include_router(notification_router)
+app.include_router(admin_router)
 
 
 @app.get("/health", tags=["health"], status_code=200)

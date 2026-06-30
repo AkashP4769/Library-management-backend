@@ -26,7 +26,7 @@ async def create_book(
 
     if existing:
         raise ConflictException("Book with this ISBN already exists.")
-    
+
     # save image file if provided convert the image to webp format and save it to the static folder and save the path in the database
     image_path = None
     image = payload.image
@@ -111,9 +111,7 @@ async def update_book(
         existing = await repo.get_by_isbn(db, payload.isbn)
 
         if existing and existing.id != book.id:
-            raise ConflictException(
-                "Book with this ISBN already exists."
-            )
+            raise ConflictException("Book with this ISBN already exists.")
 
     old_value = book.to_api_dict().copy()
 
