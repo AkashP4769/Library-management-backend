@@ -16,11 +16,17 @@ from models.notifications import (
 )
 
 from notifications import repo
-from notifications.schema import NotificationCreateRequest, NotificationUpdateRequest
+from notifications.schema import (
+    CreateBorrowRequest,
+    NotificationCreateRequest,
+    NotificationUpdateRequest,
+)
 
 from user import repository as user_repo
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo as borrow_repo
+from models.book_copy import BookCopy, BookCopyStatus
+from models.borrowed_book import BorrowedBook
 
 
 async def _validate_receiver(
@@ -242,3 +248,54 @@ async def resolve_notification(
     except SQLAlchemyError:
         await db.rollback()
         raise DBException("Failed to resolve notification.")
+
+
+async def create_request_notification(
+    db: AsyncSession,
+    payload: CreateBorrowRequest,
+):
+    try:
+        # Prevent duplicate request from same sender
+        existing_request = await repo.get_user_requests(
+            db=db,
+            user_id=payload.sender_id,
+            status=NotificationStatus.PENDING,
+            isbn=payload.isbn,
+            resolved=False,
+        )
+
+        if existing_request:
+            raise BadRequestException("Already requested for this book.")
+
+        # Step 1: Get all borrowed books with the given ISBN
+        borrowed_books = await borrow_repo.get_active_borrows_by_isbn(
+            db=db,
+            isbn=payload.isbn,
+        )
+
+        if not borrowed_books:
+            raise BadRequestException("No users currently hold this book.")
+
+        created_notifications = []
+
+        # Step 2: Notify all current holders
+        for borrowed in borrowed_books:
+            notification = Notifications(
+                sender_id=payload.sender_id,
+                receiver_id=borrowed.user_id,
+                book_copy_id=borrowed.book_copy_id,
+                notification_type=NotificationType.REQUEST_BOOK,
+                status=NotificationStatus.PENDING,
+                resolved=False,
+            )
+
+            created = await repo.create_notification(db, notification)
+            created_notifications.append(created)
+
+        await db.commit()
+
+        return created_notifications
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise DBException(f"Failed to create request notifications.{e}")
