@@ -82,13 +82,16 @@ async def borrow_book(
     actor_user_id: int,
 ) -> BorrowedBook:
 
-    book_copy = await book_copy_repo.get_book_copy(
+    book_copy = await book_copy_repo.find_available_book_copy(
         db=db,
-        book_copy_id=payload.book_copy_id,
+        isbn=payload.isbn,
+        shelf_id=payload.shelf_id,
     )
 
     if book_copy is None:
-        raise NotFoundException("Book copy not found.")
+        raise NotFoundException(
+            "No available copy found for the given ISBN and shelf."
+        )
 
     user = await user_repo.get_user(
         db=db,
@@ -98,12 +101,9 @@ async def borrow_book(
     if user is None:
         raise NotFoundException("User not found.")
 
-    if book_copy.status != BookCopyStatus.AVAILABLE:
-        raise ConflictException("Book copy is not available.")
-
     existing = await repo.get_active_borrow(
         db=db,
-        book_copy_id=payload.book_copy_id,
+        book_copy_id=book_copy.id,
     )
 
     if existing:
@@ -111,7 +111,8 @@ async def borrow_book(
 
     borrowed_book = await repo.borrow_book(
         db=db,
-        payload=payload,
+        book_copy_id=book_copy.id,
+        user_id=payload.user_id,
     )
 
     await book_copy_repo.update_status(
