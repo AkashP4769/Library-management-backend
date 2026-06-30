@@ -1,4 +1,3 @@
-
 from select import select
 
 from sqlalchemy import select
@@ -21,11 +20,26 @@ async def create(db: AsyncSession, user: User) -> User:
     await db.refresh(user)
     return user
 
+
 async def get_by_email(db: AsyncSession, email: str) -> User:
-    stmt = select(User).where(
-        User.email == email, User.deleted_at.is_(None)
-    )
+    stmt = select(User).where(User.email == email, User.deleted_at.is_(None))
 
     res = await db.scalars(stmt)
 
     return res.first()
+
+
+async def get_by_id(db: AsyncSession, user_id: int) -> User:
+    stmt = select(User).where(User.id == user_id, User.deleted_at.is_(None))
+
+    res = await db.scalars(stmt)
+
+    return res.first()
+
+
+async def get_all_users(db: AsyncSession) -> list[User]:
+    stmt = select(User).where(User.deleted_at.is_(None))
+
+    res = await db.scalars(stmt)
+
+    return res.all()

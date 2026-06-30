@@ -10,7 +10,7 @@ from typing import Any
 import chromadb
 
 
-def get_chroma_client(persist_directory: str = "chroma_db") -> Any:
+def get_chroma_client(persist_directory: str = "agent/storage/chroma_db") -> Any:
     """Initialise and return a persistent ChromaDB client.
 
     Args:
@@ -27,13 +27,13 @@ def get_chroma_client(persist_directory: str = "chroma_db") -> Any:
     return client
 
 
-def create_collection(client: any, collection_name: str = "dholakpur_helpdesk") -> Any:
+def create_collection(client: any, collection_name: str = "lumina_helpdesk") -> Any:
     """Create or retrieve a named ChromaDB collection.
 
     Args:
         client: A ChromaDB client instance (from get_chroma_client).
         collection_name: Name for the vector collection.
-            Defaults to "dholakpur_helpdesk".
+            Defaults to "lumina_helpdesk".
 
     Returns:
         A ChromaDB Collection object.

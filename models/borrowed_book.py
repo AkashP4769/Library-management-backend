@@ -30,10 +30,10 @@ class BorrowedBook(Entity):
     __tablename__ = "borrowed_books"
 
     book_copy_id: Mapped[int] = mapped_column(
-    Integer,
-    ForeignKey("book_copies.id"),
-    nullable=False,
-)
+        Integer,
+        ForeignKey("book_copies.id"),
+        nullable=False,
+    )
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.id"),
@@ -82,11 +82,6 @@ class BorrowedBook(Entity):
     user: Mapped["User"] = relationship(
         "User",
         back_populates="borrowed_books",
-    )
-
-    request: Mapped["Request"] = relationship(
-    "Request",
-    back_populates="borrowed_book",
     )
 
     def to_api_dict(self) -> dict:

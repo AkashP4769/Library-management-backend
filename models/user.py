@@ -41,23 +41,30 @@ class User(Entity):
         server_default=UserRole.EMPLOYEE.value,
     )
     reviews: Mapped[list["Review"]] = relationship(
-    "Review",
-    back_populates="user",
-    cascade="all, delete-orphan",
+        "Review",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
     borrowed_books: Mapped[list["BorrowedBook"]] = relationship(
-    "BorrowedBook",
-    back_populates="user",
-    )
-    requests: Mapped[list["Request"]] = relationship(
-    "Request",
-    back_populates="requester",
+        "BorrowedBook",
+        back_populates="user",
     )
     audit_logs: Mapped[list["AuditLog"]] = relationship(
     "AuditLog",
     back_populates="user",
     )
 
+    received_notifications: Mapped[list["Notifications"]] = relationship(
+        "Notifications",
+        foreign_keys="Notifications.receiver_id",
+        back_populates="receiver",
+    )
+
+    sent_notifications: Mapped[list["Notifications"]] = relationship(
+        "Notifications",
+        foreign_keys="Notifications.sender_id",
+        back_populates="sender",
+    )
 
     def to_api_dict(self) -> dict[str, Any]:
         """JSON-friendly representation (ISO 8601 for timestamps)."""
