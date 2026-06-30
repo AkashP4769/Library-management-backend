@@ -15,7 +15,16 @@ async def create(
     db: AsyncSession,
     payload: BookCreateRequest,
 ) -> Book:
-    book = Book(**payload.model_dump())
+    book = Book(
+        isbn=payload.isbn,
+        title=payload.title,
+        author=payload.author,
+        genre=payload.genre,
+        publisher=payload.publisher,
+        language=payload.language,
+        description=payload.description,
+        image_url=payload.image_url,
+    )
 
     db.add(book)
     await db.commit()

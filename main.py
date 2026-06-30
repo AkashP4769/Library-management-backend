@@ -2,6 +2,8 @@ from fastapi import FastAPI
 import uvicorn
 import logging
 
+from fastapi.staticfiles import StaticFiles
+
 from middleware import configure_middleware
 from auth.router import router as auth_router
 from config import setting
@@ -16,6 +18,8 @@ from borrowed_book.router import router as borrowed_book_router
 
 from request.router import router as request_router
 from audit.router import router as audit_router
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -47,6 +51,8 @@ def health():
         "message": f"App is healthy. Environment: {setting.app_env}",
         "status": "healthy",
     }
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 if __name__ == "__main__":
