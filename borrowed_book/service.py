@@ -4,17 +4,21 @@ Business logic for BorrowedBook.
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit import service as audit_service
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo
-from models.borrowed_book import BorrowStatus
 from borrowed_book.schema import BorrowBookRequest
-from models.borrowed_book import BorrowedBook
-from user import repository as user_repo
+from exceptions import ConflictException, NotFoundException
+from models.audit import AuditAction
 from models.book_copy import BookCopyStatus
+from models.borrowed_book import BorrowStatus, BorrowedBook
+from user import repository as user_repo
+
 
 async def borrow_book(
     db: AsyncSession,
     payload: BorrowBookRequest,
+    actor_user_id: int,
 ) -> BorrowedBook:
 
     book_copy = await book_copy_repo.get_book_copy(
@@ -23,7 +27,7 @@ async def borrow_book(
     )
 
     if book_copy is None:
-        raise ValueError("Book copy not found.")
+        raise NotFoundException("Book copy not found.")
 
     user = await user_repo.get_user(
         db=db,
@@ -31,10 +35,10 @@ async def borrow_book(
     )
 
     if user is None:
-        raise ValueError("User not found.")
+        raise NotFoundException("User not found.")
 
     if book_copy.status != BookCopyStatus.AVAILABLE:
-        raise ValueError("Book copy is not available.")
+        raise ConflictException("Book copy is not available.")
 
     existing = await repo.get_active_borrow(
         db=db,
@@ -42,7 +46,7 @@ async def borrow_book(
     )
 
     if existing:
-        raise ValueError("Book copy is already borrowed.")
+        raise ConflictException("Book copy is already borrowed.")
 
     borrowed_book = await repo.borrow_book(
         db=db,
@@ -55,7 +59,23 @@ async def borrow_book(
         status=BookCopyStatus.BORROWED,
     )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.BORROW,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value={
+            "book_copy_status": BookCopyStatus.AVAILABLE.value,
+        },
+        new_value={
+            "book_copy_status": BookCopyStatus.BORROWED.value,
+            "borrow": borrowed_book.to_api_dict(),
+        },
+    )
+
     return borrowed_book
+
 
 async def get_borrowed_books(
     db: AsyncSession,
@@ -64,9 +84,6 @@ async def get_borrowed_books(
     page: int = 1,
     limit: int = 10,
 ) -> list[BorrowedBook]:
-    """
-    Get borrowed books.
-    """
 
     return await repo.get_borrowed_books(
         db=db,
@@ -81,9 +98,6 @@ async def get_borrowed_book(
     db: AsyncSession,
     borrow_id: int,
 ) -> BorrowedBook:
-    """
-    Get borrowed book by ID.
-    """
 
     borrowed_book = await repo.get_borrowed_book(
         db=db,
@@ -91,7 +105,7 @@ async def get_borrowed_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     return borrowed_book
 
@@ -99,6 +113,7 @@ async def get_borrowed_book(
 async def return_book(
     db: AsyncSession,
     borrow_id: int,
+    actor_user_id: int,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -107,10 +122,12 @@ async def return_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     if borrowed_book.status == BorrowStatus.RETURNED:
-        raise ValueError("Book already returned.")
+        raise ConflictException("Book already returned.")
+
+    old_value = borrowed_book.to_api_dict().copy()
 
     borrowed_book = await repo.return_book(
         db=db,
@@ -129,15 +146,24 @@ async def return_book(
             status=BookCopyStatus.AVAILABLE,
         )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.RETURN,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value=old_value,
+        new_value=borrowed_book.to_api_dict(),
+    )
+
     return borrowed_book
+
 
 async def renew_book(
     db: AsyncSession,
     borrow_id: int,
+    actor_user_id: int,
 ) -> BorrowedBook:
-    """
-    Renew a borrowed book.
-    """
 
     borrowed_book = await repo.get_borrowed_book(
         db=db,
@@ -145,18 +171,32 @@ async def renew_book(
     )
 
     if borrowed_book is None:
-        raise ValueError("Borrow record not found.")
+        raise NotFoundException("Borrow record not found.")
 
     if borrowed_book.status == BorrowStatus.RETURNED:
-        raise ValueError("Returned books cannot be renewed.")
+        raise ConflictException("Returned books cannot be renewed.")
 
     if borrowed_book.status == BorrowStatus.OVERDUE:
-        raise ValueError("Overdue books cannot be renewed.")
+        raise ConflictException("Overdue books cannot be renewed.")
 
     if borrowed_book.renewal_count >= 3:
-        raise ValueError("Maximum renewal limit reached.")
+        raise ConflictException("Maximum renewal limit reached.")
 
-    return await repo.renew_book(
+    old_value = borrowed_book.to_api_dict().copy()
+
+    borrowed_book = await repo.renew_book(
         db=db,
         borrowed_book=borrowed_book,
     )
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=actor_user_id,
+        action_type=AuditAction.UPDATE,
+        entity_type="BORROWED_BOOK",
+        entity_id=str(borrowed_book.id),
+        old_value=old_value,
+        new_value=borrowed_book.to_api_dict(),
+    )
+
+    return borrowed_book
