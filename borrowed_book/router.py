@@ -55,15 +55,13 @@ async def get_borrowed_books_details(
 async def borrow_book(
     payload: BorrowBookRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user),
 ):
-    try:
-        return await service.borrow_book(
-            db=db,
-            payload=payload,
-        )
-
-    except ValueError as e:
-        raise NotFoundException(str(e))
+    return await service.borrow_book(
+        db=db,
+        payload=payload,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.get(
