@@ -38,7 +38,9 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
 )
 async def create(
-    payload: ShelfCreateRequest,
+    payload: ShelfCreateRequest = Depends(
+        ShelfCreateRequest.as_form
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     shelf = await create_shelf(db, payload)

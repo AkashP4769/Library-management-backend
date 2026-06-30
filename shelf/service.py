@@ -2,6 +2,8 @@
 Business logic for Shelf.
 """
 
+import shutil
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
@@ -23,12 +25,13 @@ from shelf.schema import (
     ShelfCreateRequest,
     ShelfUpdateRequest,
 )
+from utils import save_image
 
 
 async def create_shelf(
     db: AsyncSession,
     payload: ShelfCreateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Shelf:
 
     existing = await get_by_shelf_code(
@@ -41,7 +44,18 @@ async def create_shelf(
             "Shelf with the same code already exists."
         )
 
-    shelf = Shelf(**payload.model_dump())
+    image_path = None
+    image = payload.image
+
+    if image:
+        image_path = save_image(image)
+
+    shelf = Shelf(
+        shelf_code=payload.shelf_code,
+        office_location=payload.office_location,
+        capacity=payload.capacity,
+        image_url=image_path,
+    )
 
     shelf = await create(
         db=db,

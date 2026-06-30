@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import Entity
@@ -34,6 +34,11 @@ class Shelf(Entity):
         nullable=False,
     )
 
+    image_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     book_copies: Mapped[list["BookCopy"]] = relationship(
     "BookCopy",
     back_populates="shelf",
@@ -46,6 +51,7 @@ class Shelf(Entity):
             "shelf_code": self.shelf_code,
             "office_location": self.office_location,
             "capacity": self.capacity,
+            "image_url": self.image_url,
             "created_at": _datetime_to_iso(self.created_at),
             "updated_at": _datetime_to_iso(self.updated_at),
             "deleted_at": _datetime_to_iso(self.deleted_at),
