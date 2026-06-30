@@ -5,6 +5,8 @@ API routes for Shelf.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.dependencies import get_current_user
+from auth.schemas import TokenPayload
 from database.connection import get_db
 from shelf.schema import (
     ShelfCreateRequest,
@@ -42,6 +44,7 @@ async def create(
         ShelfCreateRequest.as_form
     ),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     shelf = await create_shelf(db, payload)
     return shelf.to_api_dict()
@@ -54,6 +57,7 @@ async def create(
 )
 async def get_all(
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     shelves = await get_shelves(db)
     return [shelf.to_api_dict() for shelf in shelves]
@@ -67,6 +71,7 @@ async def get_all(
 async def get(
     shelf_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     shelf = await get_shelf(db, shelf_id)
 
@@ -85,6 +90,7 @@ async def update(
     shelf_id: int,
     payload: ShelfUpdateRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     shelf = await update_shelf(
         db=db,
@@ -104,6 +110,7 @@ async def update(
 async def delete(
     shelf_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     deleted = await delete_shelf(db, shelf_id)
 

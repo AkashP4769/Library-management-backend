@@ -10,7 +10,7 @@ from config import setting
 from exceptions.handler import register_exception_handlers
 from book.router import router as book_router
 from shelf.router import router as shelf_router
-from agent.router import router as agent_router
+# from agent.router import router as agent_router
 
 from book_copy.router import router as book_copy_router
 from review.router import router as review_router
@@ -38,7 +38,7 @@ register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(book_router)
 app.include_router(shelf_router)
-app.include_router(agent_router)
+# app.include_router(agent_router)
 app.include_router(book_copy_router)
 app.include_router(review_router)
 app.include_router(borrowed_book_router)

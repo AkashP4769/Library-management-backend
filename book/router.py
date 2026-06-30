@@ -3,6 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
+from auth.dependencies import get_current_user
+from auth.schemas import TokenPayload
 from exceptions import (AppException,
     NotFoundException,
     ConflictException,
@@ -35,8 +37,10 @@ router = APIRouter(
 async def create_book(
     payload: BookCreateRequest = Depends(
         BookCreateRequest.as_form
+
     ),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
 
     try:
@@ -58,6 +62,7 @@ async def create_book(
 )
 async def get_books(
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
 
     return await service.get_books(db)
@@ -67,6 +72,7 @@ async def get_books(
 )
 async def get_book_by_isbn_by_api(
      isbn: str,
+     _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.get_by_isbn_by_api(
@@ -84,6 +90,7 @@ async def get_book_by_isbn_by_api(
 async def get_book_by_isbn(
     isbn: str,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.get_by_isbn(
@@ -99,6 +106,7 @@ async def get_book_by_isbn(
 async def get_book(
     book_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
 
     try:
@@ -119,6 +127,7 @@ async def update_book(
     book_id: int,
     payload: BookUpdateRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
 
     try:
@@ -142,6 +151,7 @@ async def update_book(
 async def delete_book(
     book_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
 
     try:

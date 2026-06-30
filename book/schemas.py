@@ -89,4 +89,4 @@ class BookAPIResponse(BaseModel):
     pages: str | None = Field(default=None, max_length=255)
     publisher: str | None = Field(default=None, max_length=255)
     language: str | None = Field(default=None, max_length=50)
-    image_url: str | None = None
+    cover_urls: list[str | None] | None = None
