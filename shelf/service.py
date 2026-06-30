@@ -40,9 +40,7 @@ async def create_shelf(
     )
 
     if existing:
-        raise ConflictException(
-            "Shelf with the same code already exists."
-        )
+        raise ConflictException("Shelf with the same code already exists.")
 
     image_path = None
     image = payload.image
@@ -101,7 +99,7 @@ async def update_shelf(
     db: AsyncSession,
     shelf_id: int,
     payload: ShelfUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Shelf:
 
     shelf = await get_by_id(
@@ -112,19 +110,14 @@ async def update_shelf(
     if shelf is None:
         raise NotFoundException("Shelf not found.")
 
-    if (
-        payload.shelf_code is not None
-        and payload.shelf_code != shelf.shelf_code
-    ):
+    if payload.shelf_code is not None and payload.shelf_code != shelf.shelf_code:
         existing = await get_by_shelf_code(
             db=db,
             shelf_code=payload.shelf_code,
         )
 
         if existing:
-            raise ConflictException(
-                "Shelf with the same code already exists."
-            )
+            raise ConflictException("Shelf with the same code already exists.")
 
     old_value = shelf.to_api_dict().copy()
 
@@ -158,7 +151,7 @@ async def update_shelf(
 async def delete_shelf(
     db: AsyncSession,
     shelf_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> bool:
 
     shelf = await get_by_id(

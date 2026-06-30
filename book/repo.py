@@ -190,3 +190,17 @@ async def search(
     result = await db.execute(stmt)
 
     return result.scalars().all()
+
+
+async def search_book_by_genre(
+    genre: str, book_id: int, db: AsyncSession
+) -> list[Book]:
+    result = await db.execute(
+        select(Book).where(
+            Book.genre == genre,
+            Book.id != book_id,
+            Book.deleted_at.is_(None),
+        )
+    )
+
+    return result.scalars().all()

@@ -20,7 +20,7 @@ from review.schema import (
 async def create_review(
     db: AsyncSession,
     payload: ReviewCreateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Review:
     """
     Create a review.
@@ -119,7 +119,7 @@ async def update_review(
     db: AsyncSession,
     review_id: int,
     payload: ReviewUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Review:
     """
     Update a review.
@@ -157,7 +157,7 @@ async def update_review(
 async def delete_review(
     db: AsyncSession,
     review_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
     """
     Delete a review.

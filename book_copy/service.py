@@ -82,7 +82,7 @@ async def update_book_copy(
     db: AsyncSession,
     copy_id: int,
     payload: BookCopyUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> BookCopy:
 
     book_copy = await BookCopyRepository.get_book_copy(
@@ -117,7 +117,7 @@ async def update_book_copy(
 async def delete_book_copy(
     db: AsyncSession,
     copy_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
 
     book_copy = await BookCopyRepository.get_book_copy(
