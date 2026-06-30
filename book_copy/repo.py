@@ -13,25 +13,33 @@ from models.book_copy import BookCopy, BookCopyStatus
 from models.review import Review
 from models.shelf import Shelf
 
-from book_copy.schema import BookCopyCreateRequest, BookCopyUpdateRequest
+from book_copy.schema import BookCopyCreateRequest, BookCopyUpdateRequest, BulkBookCopyCreateRequest
 from models.book_copy import BookCopy, BookCopyStatus
 
 
 async def create_book_copy(
     db: AsyncSession,
-    payload: BookCopyCreateRequest,
-) -> BookCopy:
+    payload: list[BulkBookCopyCreateRequest],
+) -> list[BookCopy]:
 
-    book_copy = BookCopy(
-        isbn=payload.isbn,
-        shelf_id=payload.shelf_id,
-    )
+    book_copies = []
+    for bulk_request in payload:
+        book_copies.extend([
+            BookCopy(
+                isbn=bulk_request.isbn,
+                shelf_id=bulk_request.shelf_id,
+            )
+            for _ in range(bulk_request.quantity)
+        ])
 
-    db.add(book_copy)
+    db.add_all(book_copies)
     await db.commit()
-    await db.refresh(book_copy)
+    refreshed_book_copies = []
+    for book_copy in book_copies:
+        await db.refresh(book_copy)
+        refreshed_book_copies.append(book_copy)
 
-    return book_copy
+    return refreshed_book_copies
 
 
 async def get_book_copy(
