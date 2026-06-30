@@ -5,6 +5,14 @@ Database operations for Book Copy.
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import case, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.book import Book
+from models.book_copy import BookCopy, BookCopyStatus
+from models.review import Review
+from models.shelf import Shelf
+
 from book_copy.schema import BookCopyCreateRequest, BookCopyUpdateRequest
 from models.book_copy import BookCopy, BookCopyStatus
 
@@ -131,3 +139,108 @@ async def update_status(
     await db.refresh(book_copy)
 
     return book_copy
+
+
+
+async def get_inventory(
+    db: AsyncSession,
+    page: int = 1,
+    limit: int = 10,
+) -> tuple[list, int]:
+
+    offset = (page - 1) * limit
+
+    total_query = (
+        select(
+            func.count()
+        )
+        .select_from(
+            select(
+                BookCopy.isbn,
+                BookCopy.shelf_id,
+            )
+            .group_by(
+                BookCopy.isbn,
+                BookCopy.shelf_id,
+            )
+            .subquery()
+        )
+    )
+
+    total = (
+        await db.execute(total_query)
+    ).scalar_one()
+
+    query = (
+        select(
+            Book.isbn,
+            Book.title,
+            Book.author,
+            Book.genre,
+            Book.publisher,
+            Book.language,
+
+            Shelf.id.label("shelf_id"),
+            Shelf.shelf_code,
+            Shelf.office_location,
+
+            func.count(BookCopy.id).label("total_copies"),
+
+            func.sum(
+                case(
+                    (
+                        BookCopy.status == BookCopyStatus.AVAILABLE,
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("available_copies"),
+
+            func.sum(
+                case(
+                    (
+                        BookCopy.status == BookCopyStatus.BORROWED,
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("borrowed_copies"),
+
+            func.avg(
+                Review.rating
+            ).label("average_rating"),
+        )
+        .join(
+            Book,
+            BookCopy.isbn == Book.isbn,
+        )
+        .join(
+            Shelf,
+            BookCopy.shelf_id == Shelf.id,
+        )
+        .outerjoin(
+            Review,
+            Review.isbn == Book.isbn,
+        )
+        .group_by(
+            Book.isbn,
+            Book.title,
+            Book.author,
+            Book.genre,
+            Book.publisher,
+            Book.language,
+
+            Shelf.id,
+            Shelf.shelf_code,
+            Shelf.office_location,
+        )
+        .order_by(
+            Book.title
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+
+    return result.all(), total

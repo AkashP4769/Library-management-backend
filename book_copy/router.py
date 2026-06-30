@@ -15,7 +15,15 @@ from book_copy.schema import (
     BookCopyStatisticsResponse,
     BookCopyStatus,
 )
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from book_copy import service
+from book_copy.schema import (
+    InventoryListResponse,
+    InventoryResponse,
+)
+from database import get_db
 router = APIRouter(
     prefix="/book-copies",
     tags=["Book Copies"],
@@ -25,6 +33,56 @@ router = APIRouter(
 # -----------------------
 # CRUD
 # -----------------------
+
+
+@router.get(
+    "/inventory",
+    response_model=InventoryListResponse,
+)
+async def get_inventory(
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> InventoryListResponse:
+   
+
+    inventory, total = await service.get_inventory(
+        db=db,
+        page=page,
+        limit=limit,
+    )
+
+    return InventoryListResponse(
+        inventory=[
+            InventoryResponse(
+                isbn=row.isbn,
+                title=row.title,
+                author=row.author,
+                genre=row.genre,
+                publisher=row.publisher,
+                language=row.language,
+                shelf_id=row.shelf_id,
+                shelf_code=row.shelf_code,
+                office_location=row.office_location,
+                total_copies=row.total_copies,
+                available_copies=row.available_copies,
+                borrowed_copies=row.borrowed_copies,
+                average_rating=float(row.average_rating)
+                if row.average_rating is not None
+                else None,
+            )
+            for row in inventory
+        ],
+        total=total,
+    )
+
 
 @router.post(
     "",
@@ -122,3 +180,10 @@ async def delete_book_copy(
 # -----------------------
 # Admin Statistics
 # -----------------------
+"""
+API routes for Inventory.
+"""
+
+
+
+

@@ -9,6 +9,13 @@ from book_copy.schema import (
 from exceptions import NotFoundException
 from models.audit import AuditAction
 from models.book_copy import BookCopy
+"""
+Business logic for Inventory.
+"""
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from book_copy import repo
 
 
 async def create_book_copy(
@@ -137,3 +144,23 @@ async def get_book_copy_statistics(
 ):
 
     return await BookCopyRepository.get_book_copy_statistics(db)
+
+
+
+
+async def get_inventory(
+    db: AsyncSession,
+    page: int = 1,
+    limit: int = 10,
+):
+    """
+    Get inventory summary grouped by ISBN and Shelf.
+    """
+
+    inventory, total = await repo.get_inventory(
+        db=db,
+        page=page,
+        limit=limit,
+    )
+
+    return inventory, total
