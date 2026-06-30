@@ -60,6 +60,7 @@ class InventoryResponse(BaseModel):
     genre: str | None = None
     publisher: str | None = None
     language: str | None = None
+    image_url: str | None = None
 
     shelf_id: int
     shelf_code: str
