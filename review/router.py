@@ -5,6 +5,8 @@ API routes for Review.
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.dependencies import get_current_user
+from auth.schemas import TokenPayload
 from database.connection import get_db
 from exceptions import NotFoundException
 from review import service
@@ -29,6 +31,7 @@ router = APIRouter(
 async def create_review(
     payload: ReviewCreateRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.create_review(
@@ -50,6 +53,7 @@ async def get_reviews(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     return await service.get_reviews(
         db=db,
@@ -67,6 +71,7 @@ async def get_reviews(
 async def get_review(
     review_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.get_review(
@@ -82,6 +87,7 @@ async def get_review(
 async def get_book_review(
     isbn: str,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         print("route isbn: ", isbn)
@@ -102,6 +108,7 @@ async def update_review(
     review_id: int,
     payload: ReviewUpdateRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.update_review(
@@ -121,6 +128,7 @@ async def update_review(
 async def delete_review(
     review_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         await service.delete_review(

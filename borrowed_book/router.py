@@ -51,6 +51,8 @@ async def get_borrowed_books_details(
     "",
     response_model=BorrowedBookResponse,
     status_code=status.HTTP_201_CREATED,
+    
+
 )
 async def borrow_book(
     payload: BorrowBookRequest,
@@ -74,6 +76,7 @@ async def get_borrowed_books_details(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     borrowed_books = await service.get_borrowed_books_details(
         db=db,
@@ -94,6 +97,7 @@ async def get_borrowed_books_details(
 async def get_borrowed_book(
     borrow_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.get_borrowed_book(
@@ -112,6 +116,7 @@ async def get_borrowed_book(
 async def return_book(
     borrow_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.return_book(
@@ -130,6 +135,7 @@ async def return_book(
 async def renew_book(
     borrow_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.renew_book(

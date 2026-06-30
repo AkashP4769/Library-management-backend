@@ -82,7 +82,7 @@ async def borrow_book(
     actor_user_id: int,
 ) -> BorrowedBook:
 
-    book_copy = await book_copy_repo.find_available_book_copy(
+    book_copy = await book_copy_repo.get_available_book_copy(
         db=db,
         isbn=payload.isbn,
         shelf_id=payload.shelf_id,
@@ -93,7 +93,7 @@ async def borrow_book(
             "No available copy found for the given ISBN and shelf."
         )
 
-    user = await user_repo.get_user(
+    user = await user_repo.get_by_id(
         db=db,
         user_id=payload.user_id,
     )
@@ -175,7 +175,7 @@ async def get_borrowed_book(
 async def return_book(
     db: AsyncSession,
     borrow_id: int,
-    actor_user_id: int,
+    actor_user_id: int =1,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -198,7 +198,7 @@ async def return_book(
 
     book_copy = await book_copy_repo.get_book_copy(
         db=db,
-        book_copy_id=borrowed_book.book_copy_id,
+        copy_id=borrowed_book.book_copy_id,
     )
 
     if book_copy is not None:
@@ -224,7 +224,7 @@ async def return_book(
 async def renew_book(
     db: AsyncSession,
     borrow_id: int,
-    actor_user_id: int,
+    actor_user_id: int =1,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
