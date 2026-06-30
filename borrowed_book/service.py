@@ -2,17 +2,78 @@
 Business logic for BorrowedBook.
 """
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo
-from borrowed_book.schema import BorrowBookRequest
-from exceptions import ConflictException, NotFoundException
+from borrowed_book.schema import BorrowBookRequest, BorrowedBookDetailsResponse
+from exceptions import BadRequestException, ConflictException, DBException, NotFoundException
 from models.audit import AuditAction
 from models.book_copy import BookCopyStatus
 from models.borrowed_book import BorrowStatus, BorrowedBook
 from user import repository as user_repo
+
+async def get_borrowed_books_details(
+    db: AsyncSession,
+    user_id: int | None = None,
+    status: BorrowStatus | None = None,
+    page: int = 1,
+    limit: int = 10,
+) -> list[BorrowedBookDetailsResponse]:
+
+    try:
+        if page < 1:
+            raise BadRequestException("Page number must be greater than 0.")
+
+        if limit < 1:
+            raise BadRequestException("Limit must be greater than 0.")
+
+        borrowed_books = await repo.get_borrowed_books_details(
+            db=db,
+            user_id=user_id,
+            status=status,
+            page=page,
+            limit=limit,
+        )
+
+        if not borrowed_books:
+            raise NotFoundException("No borrowed books found.")
+
+        return [
+            BorrowedBookDetailsResponse(
+                id=borrowed_book.id,
+                user_id=borrowed_book.user.id,
+                user_name=borrowed_book.user.name,
+                user_email=borrowed_book.user.email,
+                book_copy_id=borrowed_book.book_copy.id,
+                isbn=borrowed_book.book_copy.book.isbn,
+                title=borrowed_book.book_copy.book.title,
+                author=borrowed_book.book_copy.book.author,
+                genre=borrowed_book.book_copy.book.genre,
+                publisher=borrowed_book.book_copy.book.publisher,
+                language=borrowed_book.book_copy.book.language,
+                shelf_id=borrowed_book.book_copy.shelf.id,
+                shelf_code=borrowed_book.book_copy.shelf.shelf_code,
+                office_location=borrowed_book.book_copy.shelf.office_location,
+                borrowed_at=borrowed_book.borrowed_at,
+                due_date=borrowed_book.due_date,
+                returned_at=borrowed_book.returned_at,
+                status=borrowed_book.status,
+                renewal_count=borrowed_book.renewal_count,
+                fine_amount=float(borrowed_book.fine_amount),
+                created_at=borrowed_book.created_at,
+                updated_at=borrowed_book.updated_at,
+            )
+            for borrowed_book in borrowed_books
+        ]
+
+    except (BadRequestException, NotFoundException):
+        raise
+
+    except SQLAlchemyError as e:
+        raise DBException(f"Failed to fetch borrowed book details: {e}")
 
 
 async def borrow_book(
