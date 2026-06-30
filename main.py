@@ -15,7 +15,7 @@ from review.router import router as review_router
 from borrowed_book.router import router as borrowed_book_router
 
 from request.router import router as request_router
-
+from audit.router import router as audit_router
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -39,7 +39,7 @@ app.include_router(book_copy_router)
 app.include_router(review_router)
 app.include_router(borrowed_book_router)
 app.include_router(request_router)
-
+app.include_router(audit_router)
 
 @app.get("/health", tags=["health"], status_code=200)
 def health():

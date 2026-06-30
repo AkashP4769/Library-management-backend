@@ -53,6 +53,10 @@ class User(Entity):
     "Request",
     back_populates="requester",
     )
+    audit_logs: Mapped[list["AuditLog"]] = relationship(
+    "AuditLog",
+    back_populates="user",
+    )
 
 
     def to_api_dict(self) -> dict[str, Any]:
