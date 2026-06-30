@@ -244,3 +244,23 @@ async def get_inventory(
     result = await db.execute(query)
 
     return result.all(), total
+
+
+async def get_available_book_copy(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int | None = None,
+) -> BookCopy | None:
+    stmt = (
+        select(BookCopy)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.status == BookCopyStatus.AVAILABLE,
+        )
+    )
+
+    if shelf_id is not None:
+        stmt = stmt.where(BookCopy.shelf_id == shelf_id)
+
+    result = await db.execute(stmt)
+    return result.scalars().first()
