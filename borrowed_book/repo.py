@@ -2,7 +2,7 @@
 Database operations for BorrowedBook.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -161,7 +161,7 @@ async def return_book(
     borrowed_book: BorrowedBook,
 ) -> BorrowedBook:
 
-    borrowed_book.returned_at = datetime.utcnow()
+    borrowed_book.returned_at = datetime.now(timezone.utc)
     borrowed_book.status = BorrowStatus.RETURNED
 
     if borrowed_book.returned_at > borrowed_book.due_date:
