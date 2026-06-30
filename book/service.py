@@ -2,6 +2,9 @@
 Business logic for Book.
 """
 
+from pathlib import Path
+import shutil
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from book import repo
@@ -9,6 +12,10 @@ from book.schemas import BookCreateRequest, BookUpdateRequest
 from exceptions import ConflictException, NotFoundException
 from models.book import Book
 
+
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 async def create_book(
     db: AsyncSession,
@@ -19,6 +26,25 @@ async def create_book(
 
     if existing:
         raise ConflictException("Book with this ISBN already exists.")
+    
+    # save image file if provided convert the image to webp format and save it to the static folder and save the path in the database
+    image_path = None
+    image = payload.image
+
+    if image:
+        extension = Path(image.filename).suffix
+    
+        filename = f"{uuid.uuid4()}{extension}"
+
+        file_path = UPLOAD_DIR / filename
+
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        image_path = f"/uploads/{filename}"
+
+    payload.image_url = image_path
+    print(payload.image_url)
 
     return await repo.create(db, payload)
 

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
 from exceptions import (AppException,
     NotFoundException,
     ConflictException,
@@ -18,6 +19,7 @@ from book.schemas import (
 from book import service
 from database.connection import get_db
 
+
 router = APIRouter(
     prefix="/books",
     tags=["Books"],
@@ -31,7 +33,9 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book(
-    payload: BookCreateRequest,
+    payload: BookCreateRequest = Depends(
+        BookCreateRequest.as_form
+    ),
     db: AsyncSession = Depends(get_db),
 ):
 

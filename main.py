@@ -16,6 +16,8 @@ from borrowed_book.router import router as borrowed_book_router
 
 from request.router import router as request_router
 
+from fastapi.staticfiles import StaticFiles
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -47,6 +49,8 @@ def health():
         "message": f"App is healthy. Environment: {setting.app_env}",
         "status": "healthy",
     }
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 if __name__ == "__main__":
