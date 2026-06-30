@@ -13,11 +13,8 @@ from book.schemas import BookCreateRequest, BookUpdateRequest
 from exceptions import ConflictException, NotFoundException
 from models.audit import AuditAction
 from models.book import Book
+from utils import save_image
 
-
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
 
 async def create_book(
     db: AsyncSession,
@@ -35,19 +32,9 @@ async def create_book(
     image = payload.image
 
     if image:
-        extension = Path(image.filename).suffix
-    
-        filename = f"{uuid.uuid4()}{extension}"
-
-        file_path = UPLOAD_DIR / filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        image_path = f"/uploads/{filename}"
+        image_path = save_image(image)
 
     payload.image_url = image_path
-    print(payload.image_url)
 
     book = await repo.create(db, payload)
 
