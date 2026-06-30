@@ -4,9 +4,9 @@ Repository layer for Book.
 
 from datetime import datetime
 import requests
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from audit import service as audit_service
 from models.book import Book
 from book.schemas import BookAPIResponse, BookCreateRequest, BookUpdateRequest
 

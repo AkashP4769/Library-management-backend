@@ -2,6 +2,8 @@ from fastapi import FastAPI
 import uvicorn
 import logging
 
+from fastapi.staticfiles import StaticFiles
+
 from middleware import configure_middleware
 from auth.router import router as auth_router
 from config import setting
@@ -15,8 +17,8 @@ from review.router import router as review_router
 from borrowed_book.router import router as borrowed_book_router
 
 from request.router import router as request_router
+from audit.router import router as audit_router
 
-from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +43,7 @@ app.include_router(book_copy_router)
 app.include_router(review_router)
 app.include_router(borrowed_book_router)
 app.include_router(request_router)
-
+app.include_router(audit_router)
 
 @app.get("/health", tags=["health"], status_code=200)
 def health():
