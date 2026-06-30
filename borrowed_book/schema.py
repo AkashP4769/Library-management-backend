@@ -10,7 +10,8 @@ from models.borrowed_book import BorrowStatus
 
 
 class BorrowBookRequest(BaseModel):
-    book_copy_id: int
+    isbn: str
+    shelf_id: int
     user_id: int
 
 
