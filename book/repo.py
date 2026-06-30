@@ -85,7 +85,7 @@ async def get_by_isbn_api(isbn: str):
     data = response[f"ISBN:{isbn}"]
     title = data["title"]
     author = "N/A"
-    if data.get("author"):
+    if data.get("authors"):
         author = data["authors"][0]["name"]
     publisher = data.get("publishers", [{}])[0].get("name")
     olid = data["key"]
