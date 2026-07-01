@@ -69,6 +69,11 @@ class Book(Entity):
         back_populates="book",
         cascade="all, delete-orphan",
     )
+    wishlists: Mapped[list["Wishlist"]] = relationship(
+    "Wishlist",
+    back_populates="book",
+    cascade="all, delete-orphan",
+    )
 
     def to_api_dict(self) -> dict[str, Any]:
         return {

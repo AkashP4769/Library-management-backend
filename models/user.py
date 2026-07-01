@@ -66,6 +66,11 @@ class User(Entity):
         foreign_keys="Notifications.sender_id",
         back_populates="sender",
     )
+    wishlists: Mapped[list["Wishlist"]] = relationship(
+    "Wishlist",
+    back_populates="user",
+    cascade="all, delete-orphan",
+    )
 
     def to_api_dict(self) -> dict[str, Any]:
         """JSON-friendly representation (ISO 8601 for timestamps)."""
