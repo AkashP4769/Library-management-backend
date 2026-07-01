@@ -27,7 +27,6 @@ router = APIRouter(
     response_model=BorrowedBookDetailsListResponse,
 )
 async def get_borrowed_books_details(
-    user_id: int | None = Query(default=None),
     status: BorrowStatus | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1),
@@ -62,7 +61,7 @@ async def borrow_book(
     return await service.borrow_book(
         db=db,
         payload=payload,
-        actor_user_id=current_user.id,
+        current_user=current_user,
     )
 
 
@@ -109,12 +108,13 @@ async def get_borrowed_book(
         raise NotFoundException("Borrow record not found")
 
 
-@router.patch(
-    "/{borrow_id}/return",
+@router.post(
+    "/{borrow_id}/return/{shelf_id}",
     response_model=BorrowedBookResponse,
 )
 async def return_book(
     borrow_id: int,
+    shelf_id: int,
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
@@ -122,6 +122,8 @@ async def return_book(
         return await service.return_book(
             db=db,
             borrow_id=borrow_id,
+            shelf_id=shelf_id,
+            current_user=_current_user,
         )
 
     except ValueError as e:

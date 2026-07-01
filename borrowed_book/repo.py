@@ -221,6 +221,7 @@ async def return_book(
         overdue_days = (borrowed_book.returned_at - borrowed_book.due_date).days
 
         borrowed_book.fine_amount = overdue_days * 10
+        
 
     await db.commit()
     await db.refresh(borrowed_book)
