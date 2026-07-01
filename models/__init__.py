@@ -7,7 +7,7 @@ from models.review import Review
 from models.borrowed_book import BorrowedBook
 from models.audit import AuditLog
 from models.notifications import Notifications
-
+from models.wishlist import Wishlist
 __all__ = [
     "Entity",
     "User",
@@ -18,4 +18,5 @@ __all__ = [
     "BorrowedBook",
     "AuditLog",
     "Notifications",
+    "Wishlist",
 ]
