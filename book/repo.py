@@ -8,7 +8,9 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from audit import service as audit_service
 from models.book import Book
+from models.shelf import Shelf
 from book.schemas import BookAPIResponse, BookCreateRequest, BookUpdateRequest
+from models.book_copy import BookCopy
 
 
 async def create(
@@ -203,4 +205,23 @@ async def search_book_by_genre(
         )
     )
 
+    return result.scalars().all()
+
+
+async def get_shelves_of_book(
+    db: AsyncSession,
+    isbn: str,
+) -> list[Shelf]:
+    query = (
+        # select distinct shelves that have available copies of the book with the given ISBN
+        select(Shelf)
+        .distinct()
+        .join(BookCopy, BookCopy.shelf_id == Shelf.id)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.status == "AVAILABLE",
+        )
+    )
+
+    result = await db.execute(query)
     return result.scalars().all()

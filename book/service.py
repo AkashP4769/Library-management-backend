@@ -13,6 +13,7 @@ from book.schemas import BookCreateRequest, BookUpdateRequest
 from exceptions import ConflictException, NotFoundException
 from models.audit import AuditAction
 from models.book import Book
+from models.shelf import Shelf
 from utils import save_image
 
 
@@ -175,3 +176,10 @@ async def search_books(
 
 async def search_book_by_genre(genre: str, book_id: int, db: AsyncSession):
     return await repo.search_book_by_genre(genre=genre, book_id=book_id, db=db)
+
+
+async def get_shelves_of_book(
+    db: AsyncSession,
+    isbn: str,
+) -> list[Shelf]:
+    return await repo.get_shelves_of_book(db=db, isbn=isbn)
