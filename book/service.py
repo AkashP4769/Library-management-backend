@@ -13,6 +13,7 @@ from book.schemas import BookCreateRequest, BookUpdateRequest
 from exceptions import ConflictException, NotFoundException
 from models.audit import AuditAction
 from models.book import Book
+from models.shelf import Shelf
 from utils import save_image
 
 
@@ -26,7 +27,7 @@ async def create_book(
 
     if existing:
         raise ConflictException("Book with this ISBN already exists.")
-    
+
     # save image file if provided convert the image to webp format and save it to the static folder and save the path in the database
     image_path = None
     image = payload.image
@@ -111,9 +112,7 @@ async def update_book(
         existing = await repo.get_by_isbn(db, payload.isbn)
 
         if existing and existing.id != book.id:
-            raise ConflictException(
-                "Book with this ISBN already exists."
-            )
+            raise ConflictException("Book with this ISBN already exists.")
 
     old_value = book.to_api_dict().copy()
 
@@ -139,7 +138,7 @@ async def update_book(
 async def delete_book(
     db: AsyncSession,
     book_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
 
     book = await repo.get_by_id(db, book_id)
@@ -173,3 +172,14 @@ async def search_books(
         db,
         **filters,
     )
+
+
+async def search_book_by_genre(genre: str, book_id: int, db: AsyncSession):
+    return await repo.search_book_by_genre(genre=genre, book_id=book_id, db=db)
+
+
+async def get_shelves_of_book(
+    db: AsyncSession,
+    isbn: str,
+) -> list[Shelf]:
+    return await repo.get_shelves_of_book(db=db, isbn=isbn)

@@ -35,13 +35,15 @@ async def create_audit_log(
         entity_id=entity_id,
         old_value=old_value,
         new_value=new_value,
-        metadata=metadata,
+        audit_metadata=metadata,
     )
 
     return await repo.create_audit_log(
         db=db,
         audit_log=audit_log,
     )
+
+    
 
 
 async def get_audit_log(

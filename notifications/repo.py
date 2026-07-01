@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.notifications import NotificationType, Notifications, NotificationStatus
 from notifications.schema import NotificationUpdateRequest
+from models.book_copy import BookCopy
 
 
 async def create_notification(
@@ -68,6 +69,47 @@ async def get_user_notifications(
     if book_copy_id:
         query = query.where(
             Notifications.book_copy_id == book_copy_id,
+        )
+
+    if resolved is True:
+        query = query.where(
+            Notifications.resolved_at.is_not(None),
+        )
+
+    elif resolved is False:
+        query = query.where(
+            Notifications.resolved_at.is_(None),
+        )
+
+    query = query.order_by(
+        Notifications.created_at.desc(),
+    )
+
+    result = await db.execute(query)
+
+    return list(result.scalars().all())
+
+
+async def get_user_requests(
+    db: AsyncSession,
+    user_id: int,
+    status: NotificationStatus | None = None,
+    resolved: bool | None = None,
+    isbn: int | None = None,
+) -> list[Notifications]:
+    query = select(Notifications).where(
+        Notifications.sender_id == user_id,
+        Notifications.notification_type == NotificationType.REQUEST_BOOK,
+    )
+
+    if status:
+        query = query.where(
+            Notifications.status == status,
+        )
+
+    if isbn is not None:
+        query = query.join(BookCopy).where(
+            BookCopy.isbn == isbn,
         )
 
     if resolved is True:

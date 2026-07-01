@@ -5,6 +5,7 @@ Business logic for Review.
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
+from auth.schemas import TokenPayload
 from book import repo as book_repo
 from exceptions import NotFoundException
 from models.audit import AuditAction
@@ -20,7 +21,7 @@ from review.schema import (
 async def create_review(
     db: AsyncSession,
     payload: ReviewCreateRequest,
-    actor_user_id: int,
+    current_user: TokenPayload,
 ) -> Review:
     """
     Create a review.
@@ -37,11 +38,12 @@ async def create_review(
     review = await repo.create_review(
         db=db,
         payload=payload,
+        current_user=current_user,
     )
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=actor_user_id,
+        actor_user_id=current_user.user_id,
         action_type=AuditAction.CREATE,
         entity_type="REVIEW",
         entity_id=str(review.id),
@@ -119,7 +121,7 @@ async def update_review(
     db: AsyncSession,
     review_id: int,
     payload: ReviewUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Review:
     """
     Update a review.
@@ -157,7 +159,7 @@ async def update_review(
 async def delete_review(
     db: AsyncSession,
     review_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
     """
     Delete a review.

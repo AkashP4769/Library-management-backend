@@ -13,26 +13,31 @@ from models.book_copy import BookCopy, BookCopyStatus
 from models.review import Review
 from models.shelf import Shelf
 
-from book_copy.schema import BookCopyCreateRequest, BookCopyUpdateRequest
+from book_copy.schema import BookCopyCreateRequest, BookCopyUpdateRequest, BulkBookCopyCreateRequest
 from models.book_copy import BookCopy, BookCopyStatus
 
 
 async def create_book_copy(
     db: AsyncSession,
-    payload: BookCopyCreateRequest,
-) -> BookCopy:
+    payload: list[BulkBookCopyCreateRequest],
+) -> list[BookCopy]:
 
-    book_copy = BookCopy(
-        isbn=payload.isbn,
-        shelf_id=payload.shelf_id,
-    )
+    book_copies = []
+    for item in payload:
+        for _ in range(item.quantity):
+            book_copies.append(
+                BookCopy(
+                    isbn=item.isbn,
+                    shelf_id=item.shelf_id,
+                )
+            )
 
-    db.add(book_copy)
+    db.add_all(book_copies)
     await db.commit()
-    await db.refresh(book_copy)
+    for book_copy in book_copies:
+        await db.refresh(book_copy)
 
-    return book_copy
-
+    return book_copies
 
 async def get_book_copy(
     db: AsyncSession,
@@ -132,8 +137,10 @@ async def update_status(
     db: AsyncSession,
     book_copy: BookCopy,
     status: BookCopyStatus,
+    shelf_id: int,
 ) -> BookCopy:
     book_copy.status = status
+    book_copy.shelf_id = shelf_id
 
     await db.commit()
     await db.refresh(book_copy)
@@ -179,6 +186,7 @@ async def get_inventory(
             Book.genre,
             Book.publisher,
             Book.language,
+            Book.image_url,
 
             Shelf.id.label("shelf_id"),
             Shelf.shelf_code,
@@ -229,6 +237,7 @@ async def get_inventory(
             Book.genre,
             Book.publisher,
             Book.language,
+            Book.image_url,
 
             Shelf.id,
             Shelf.shelf_code,
@@ -244,3 +253,23 @@ async def get_inventory(
     result = await db.execute(query)
 
     return result.all(), total
+
+
+async def get_available_book_copy(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int | None = None,
+) -> BookCopy | None:
+    stmt = (
+        select(BookCopy)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.status == BookCopyStatus.AVAILABLE,
+        )
+    )
+
+    if shelf_id is not None:
+        stmt = stmt.where(BookCopy.shelf_id == shelf_id)
+
+    result = await db.execute(stmt)
+    return result.scalars().first()

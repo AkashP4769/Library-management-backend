@@ -20,8 +20,10 @@ from shelf.repo import (
     get_by_id,
     get_by_shelf_code,
     update,
+    get_books_by_shelf
 )
 from shelf.schema import (
+    ShelfBookResponse,
     ShelfCreateRequest,
     ShelfUpdateRequest,
 )
@@ -40,9 +42,7 @@ async def create_shelf(
     )
 
     if existing:
-        raise ConflictException(
-            "Shelf with the same code already exists."
-        )
+        raise ConflictException("Shelf with the same code already exists.")
 
     image_path = None
     image = payload.image
@@ -101,7 +101,7 @@ async def update_shelf(
     db: AsyncSession,
     shelf_id: int,
     payload: ShelfUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> Shelf:
 
     shelf = await get_by_id(
@@ -112,19 +112,14 @@ async def update_shelf(
     if shelf is None:
         raise NotFoundException("Shelf not found.")
 
-    if (
-        payload.shelf_code is not None
-        and payload.shelf_code != shelf.shelf_code
-    ):
+    if payload.shelf_code is not None and payload.shelf_code != shelf.shelf_code:
         existing = await get_by_shelf_code(
             db=db,
             shelf_code=payload.shelf_code,
         )
 
         if existing:
-            raise ConflictException(
-                "Shelf with the same code already exists."
-            )
+            raise ConflictException("Shelf with the same code already exists.")
 
     old_value = shelf.to_api_dict().copy()
 
@@ -158,7 +153,7 @@ async def update_shelf(
 async def delete_shelf(
     db: AsyncSession,
     shelf_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> bool:
 
     shelf = await get_by_id(
@@ -186,3 +181,40 @@ async def delete_shelf(
     )
 
     return True
+
+
+async def get_books_by_shelfs(
+    db: AsyncSession,
+    shelf_id: int,
+) -> list[ShelfBookResponse]:
+    books = await get_books_by_shelf(
+        db=db,
+        shelf_id=shelf_id,
+    )
+
+    if not books:
+        raise NotFoundException(
+            detail="No books found on this shelf."
+        )
+
+    return [
+        ShelfBookResponse(
+            isbn=book.isbn,
+            title=book.title,
+            author=book.author,
+            genre=book.genre,
+            publisher=book.publisher,
+            language=book.language,
+            description=book.description,
+            image_url=book.image_url,
+            total_copies=book.total_copies,
+            available_copies=book.available_copies,
+            borrowed_copies=book.borrowed_copies,
+            damaged_copies=book.damaged_copies,
+            lost_copies=book.lost_copies,
+            average_rating=float(book.average_rating)
+            if book.average_rating is not None
+            else None,
+        )
+        for book in books
+    ]

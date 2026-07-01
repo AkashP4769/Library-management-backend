@@ -17,6 +17,10 @@ class NotificationCreateRequest(BaseModel):
     notification_type: NotificationType
 
 
+class CreateBorrowRequest(BaseModel):
+    isbn: str | None = None
+
+
 class NotificationUpdateRequest(BaseModel):
     status: NotificationStatus
 

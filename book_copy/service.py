@@ -5,10 +5,13 @@ from book_copy import repo as BookCopyRepository
 from book_copy.schema import (
     BookCopyCreateRequest,
     BookCopyUpdateRequest,
+    BulkBookCopyCreateRequest,
+    BulkBookCopyResponse,
 )
 from exceptions import NotFoundException
 from models.audit import AuditAction
 from models.book_copy import BookCopy
+
 """
 Business logic for Inventory.
 """
@@ -20,25 +23,28 @@ from book_copy import repo
 
 async def create_book_copy(
     db: AsyncSession,
-    payload: BookCopyCreateRequest,
-    actor_user_id: int,
-) -> BookCopy:
+    payload: list[BulkBookCopyCreateRequest],
+    actor_user_id: int = 1,
+) -> list[BulkBookCopyResponse]:
 
-    book_copy = await BookCopyRepository.create_book_copy(
+    book_copies = await BookCopyRepository.create_book_copy(
         db=db,
         payload=payload,
     )
 
-    await audit_service.create_audit_log(
-        db=db,
-        actor_user_id=actor_user_id,
-        action_type=AuditAction.CREATE,
-        entity_type="BOOK_COPY",
-        entity_id=str(book_copy.id),
-        new_value=book_copy.to_api_dict(),
-    )
+    for book_copy in book_copies:
+        await audit_service.create_audit_log(
+            db=db,
+            actor_user_id=actor_user_id,
+            action_type=AuditAction.CREATE,
+            entity_type="BOOK_COPY",
+            entity_id=str(book_copy.id),
+            new_value=book_copy.to_api_dict(),
+        )
 
-    return book_copy
+    await db.commit()
+
+    return payload
 
 
 async def get_book_copies(
@@ -76,7 +82,7 @@ async def update_book_copy(
     db: AsyncSession,
     copy_id: int,
     payload: BookCopyUpdateRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> BookCopy:
 
     book_copy = await BookCopyRepository.get_book_copy(
@@ -111,7 +117,7 @@ async def update_book_copy(
 async def delete_book_copy(
     db: AsyncSession,
     copy_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
 
     book_copy = await BookCopyRepository.get_book_copy(
@@ -144,8 +150,6 @@ async def get_book_copy_statistics(
 ):
 
     return await BookCopyRepository.get_book_copy_statistics(db)
-
-
 
 
 async def get_inventory(

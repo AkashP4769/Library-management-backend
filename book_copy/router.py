@@ -5,6 +5,8 @@ Book Copy API routes.
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.dependencies import get_current_user
+from auth.schemas import TokenPayload
 from database.connection import get_db
 from exceptions import NotFoundException
 from book_copy import service
@@ -14,6 +16,8 @@ from book_copy.schema import (
     BookCopyResponse,
     BookCopyStatisticsResponse,
     BookCopyStatus,
+    BulkBookCopyCreateRequest,
+    BulkBookCopyResponse,
 )
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +54,7 @@ async def get_inventory(
         le=100,
     ),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ) -> InventoryListResponse:
    
 
@@ -58,6 +63,8 @@ async def get_inventory(
         page=page,
         limit=limit,
     )
+
+    print("Inventory:", inventory)
 
     return InventoryListResponse(
         inventory=[
@@ -68,6 +75,7 @@ async def get_inventory(
                 genre=row.genre,
                 publisher=row.publisher,
                 language=row.language,
+                image_url=row.image_url,
                 shelf_id=row.shelf_id,
                 shelf_code=row.shelf_code,
                 office_location=row.office_location,
@@ -86,12 +94,13 @@ async def get_inventory(
 
 @router.post(
     "",
-    response_model=BookCopyResponse,
+    response_model=list[BulkBookCopyResponse],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book_copy(
-    payload: BookCopyCreateRequest,
+    payload: list[BulkBookCopyCreateRequest],
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     return await service.create_book_copy(db, payload)
 
@@ -105,6 +114,7 @@ async def get_book_copies(
     shelf_id: int | None = Query(default=None),
     status: BookCopyStatus | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     return await service.get_book_copies(
         db=db,
@@ -120,6 +130,7 @@ async def get_book_copies(
 )
 async def get_book_copy_statistics(
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     return await service.get_book_copy_statistics(db)
 
@@ -131,6 +142,7 @@ async def get_book_copy_statistics(
 async def get_book_copy(
     copy_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.get_book_copy(
@@ -149,6 +161,7 @@ async def update_book_copy(
     copy_id: int,
     payload: BookCopyUpdateRequest,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         return await service.update_book_copy(
@@ -167,6 +180,7 @@ async def update_book_copy(
 async def delete_book_copy(
     copy_id: int,
     db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
         await service.delete_book_copy(

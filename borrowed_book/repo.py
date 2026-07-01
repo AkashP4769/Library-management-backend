@@ -2,7 +2,7 @@
 Database operations for BorrowedBook.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +10,12 @@ from sqlalchemy.orm import joinedload
 
 from book_copy.schema import BookCopyStatus
 from models.book_copy import BookCopy
-from models.borrowed_book import BorrowStatus
+from models.borrowed_book import BorrowStatus, BorrowedBook
 from borrowed_book.schema import BorrowBookRequest
 from models.borrowed_book import BorrowedBook
+from models.book_copy import BookCopy
+from models.book import Book
+
 
 async def get_borrowed_books_details(
     db: AsyncSession,
@@ -22,13 +25,10 @@ async def get_borrowed_books_details(
     limit: int = 10,
 ) -> list[BorrowedBook]:
 
-    query = (
-        select(BorrowedBook)
-        .options(
-            joinedload(BorrowedBook.user),
-            joinedload(BorrowedBook.book_copy).joinedload(BookCopy.book),
-            joinedload(BorrowedBook.book_copy).joinedload(BookCopy.shelf),
-        )
+    query = select(BorrowedBook).options(
+        joinedload(BorrowedBook.user),
+        joinedload(BorrowedBook.book_copy).joinedload(BookCopy.book),
+        joinedload(BorrowedBook.book_copy).joinedload(BookCopy.shelf),
     )
 
     if user_id is not None:
@@ -50,6 +50,8 @@ async def get_borrowed_books_details(
     result = await db.execute(query)
 
     return result.scalars().unique().all()
+
+
 async def find_available_book_copy(
     db: AsyncSession,
     isbn: str,
@@ -73,6 +75,67 @@ async def find_available_book_copy(
     result = await db.execute(stmt)
 
     return result.scalar_one_or_none()
+
+
+async def get_borrowed_books_details(
+    db: AsyncSession,
+    user_id: int | None = None,
+    status: BorrowStatus | None = None,
+    page: int = 1,
+    limit: int = 10,
+) -> list[BorrowedBook]:
+
+    query = select(BorrowedBook).options(
+        joinedload(BorrowedBook.user),
+        joinedload(BorrowedBook.book_copy).joinedload(BookCopy.book),
+        joinedload(BorrowedBook.book_copy).joinedload(BookCopy.shelf),
+    )
+
+    if user_id is not None:
+        query = query.where(
+            BorrowedBook.user_id == user_id,
+        )
+
+    if status is not None:
+        query = query.where(
+            BorrowedBook.status == status,
+        )
+
+    query = (
+        query.order_by(BorrowedBook.borrowed_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+
+    return result.scalars().unique().all()
+
+
+async def find_available_book_copy(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int,
+) -> BookCopy | None:
+    """
+    Find the first available copy for the given ISBN on the specified shelf.
+    """
+
+    stmt = (
+        select(BookCopy)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.shelf_id == shelf_id,
+            BookCopy.status == BookCopyStatus.AVAILABLE,
+        )
+        .order_by(BookCopy.id)
+        .limit(1)
+    )
+
+    result = await db.execute(stmt)
+
+    return result.scalar_one_or_none()
+
 
 async def borrow_book(
     db: AsyncSession,
@@ -113,10 +176,7 @@ async def get_borrowed_books(
     if status is not None:
         stmt = stmt.where(BorrowedBook.status == BorrowStatus(status))
 
-    stmt = (
-        stmt.offset((page - 1) * limit)
-        .limit(limit)
-    )
+    stmt = stmt.offset((page - 1) * limit).limit(limit)
 
     result = await db.execute(stmt)
 
@@ -128,10 +188,7 @@ async def get_borrowed_book(
     borrow_id: int,
 ) -> BorrowedBook | None:
 
-    stmt = (
-        select(BorrowedBook)
-        .where(BorrowedBook.id == borrow_id)
-    )
+    stmt = select(BorrowedBook).where(BorrowedBook.id == borrow_id)
 
     result = await db.execute(stmt)
 
@@ -143,12 +200,9 @@ async def get_active_borrow(
     book_copy_id: int,
 ) -> BorrowedBook | None:
 
-    stmt = (
-        select(BorrowedBook)
-        .where(
-            BorrowedBook.book_copy_id == book_copy_id,
-            BorrowedBook.status == BorrowStatus.BORROWED,
-        )
+    stmt = select(BorrowedBook).where(
+        BorrowedBook.book_copy_id == book_copy_id,
+        BorrowedBook.status == BorrowStatus.BORROWED,
     )
 
     result = await db.execute(stmt)
@@ -161,13 +215,11 @@ async def return_book(
     borrowed_book: BorrowedBook,
 ) -> BorrowedBook:
 
-    borrowed_book.returned_at = datetime.utcnow()
+    borrowed_book.returned_at = datetime.now(timezone.utc)
     borrowed_book.status = BorrowStatus.RETURNED
 
     if borrowed_book.returned_at > borrowed_book.due_date:
-        overdue_days = (
-            borrowed_book.returned_at - borrowed_book.due_date
-        ).days
+        overdue_days = (borrowed_book.returned_at - borrowed_book.due_date).days
 
         borrowed_book.fine_amount = overdue_days * 10
 
@@ -189,3 +241,43 @@ async def renew_book(
     await db.refresh(borrowed_book)
 
     return borrowed_book
+
+
+async def get_active_borrows_by_isbn(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int | None = None,
+) -> list[BorrowedBook]:
+
+    stmt = (
+        select(BorrowedBook)
+        .join(BookCopy, BorrowedBook.book_copy_id == BookCopy.id)
+        .where(
+            BookCopy.isbn == isbn,
+            BorrowedBook.status == BorrowStatus.BORROWED,
+        )
+    )
+    if shelf_id is not None:
+        stmt = stmt.where(BorrowedBook.shelf_id == shelf_id)
+
+    result = await db.execute(stmt)
+
+    return result.scalars().all()
+
+
+async def get_user_borrow_history(
+    db: AsyncSession,
+    user_id: int,
+) -> list[tuple[BorrowedBook, Book]]:
+
+    stmt = (
+        select(BorrowedBook, Book)
+        .join(Book, BorrowedBook.book_id == Book.id)
+        .where(BorrowedBook.user_id == user_id)
+        .order_by(BorrowedBook.borrowed_at.desc())
+        .limit(10)
+    )
+
+    result = await db.execute(stmt)
+
+    return result.all()
