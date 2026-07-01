@@ -9,6 +9,7 @@ from auth.dependencies import get_current_user
 from auth.schemas import TokenPayload
 from database.connection import get_db
 from shelf.schema import (
+    ShelfBookResponse,
     ShelfCreateRequest,
     ShelfResponse,
     ShelfUpdateRequest,
@@ -26,6 +27,7 @@ from shelf.service import (
     get_shelf,
     get_shelves,
     update_shelf,
+    get_books_by_shelfs
 )
 
 router = APIRouter(
@@ -118,3 +120,20 @@ async def delete(
         raise NotFoundException("Shelf Not Found")
 
     return
+
+@router.get(
+    "/{shelf_id}/books",
+    response_model=list[ShelfBookResponse],
+)
+async def get_books_by_shelf(
+    shelf_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all unique books available on a shelf along with
+    copy counts grouped by status.
+    """
+    return await get_books_by_shelfs(
+        db=db,
+        shelf_id=shelf_id,
+    )
