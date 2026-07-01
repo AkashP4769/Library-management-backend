@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth.schemas import TokenPayload
 from exceptions import (
     BadRequestException,
     DBException,
@@ -253,12 +254,13 @@ async def resolve_notification(
 async def create_request_notification(
     db: AsyncSession,
     payload: CreateBorrowRequest,
+    current_user: TokenPayload,
 ):
     try:
         # Prevent duplicate request from same sender
         existing_request = await repo.get_user_requests(
             db=db,
-            user_id=payload.sender_id,
+            user_id=current_user.id,
             status=NotificationStatus.PENDING,
             isbn=payload.isbn,
             resolved=False,
@@ -281,7 +283,7 @@ async def create_request_notification(
         # Step 2: Notify all current holders
         for borrowed in borrowed_books:
             notification = Notifications(
-                sender_id=payload.sender_id,
+                sender_id=current_user.id,
                 receiver_id=borrowed.user_id,
                 book_copy_id=borrowed.book_copy_id,
                 notification_type=NotificationType.REQUEST_BOOK,

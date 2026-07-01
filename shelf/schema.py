@@ -56,3 +56,19 @@ class ShelfResponse(ShelfBase):
 
 class ShelfListResponse(BaseModel):
     shelves: list[ShelfResponse]
+
+class ShelfBookResponse(BaseModel):
+    isbn: str
+    title: str
+    author: str
+    genre: str
+    publisher: str
+    language: str
+    description: str | None
+    image_url: str | None
+
+    total_copies: int
+    available_copies: int
+    borrowed_copies: int
+
+    average_rating: float | None
