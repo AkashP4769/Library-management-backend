@@ -22,7 +22,7 @@ async def login(
     db: AsyncSession,
     email: str,
     password: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, User]:
 
     user: User | None = await repository.get_by_email(
         db,
@@ -65,7 +65,7 @@ async def login(
         },
     )
 
-    return access_token, refresh_token
+    return access_token, refresh_token, user
 
 
 async def register(

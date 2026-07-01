@@ -19,6 +19,12 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     refresh_token: str
 
+    user_id: int | None = None
+    name: str | None = None
+    email: str | None = None
+    contact_number: str | None = None
+    role: str | None = None
+
 
 class TokenPayload(BaseModel):
     id: int
