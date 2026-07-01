@@ -58,17 +58,18 @@ async def create_broadcast_notifications_route(
 
 
 @router.get(
-    "/user/{user_id}",
+    "/user/",
     response_model=list[NotificationResponse],
     status_code=status.HTTP_200_OK,
+
 )
 async def get_user_notifications_route(
-    user_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user),
 ):
     return await get_user_notifications(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
 
@@ -114,5 +115,5 @@ async def create_request_notification_route(
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
-    payload.sender_id = _current_user.id
+
     return await create_request_notification(db=db, payload=payload)
