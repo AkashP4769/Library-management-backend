@@ -204,3 +204,19 @@ async def get_user_requests(
     result = await db.execute(query)
 
     return list(result.scalars().all())
+
+
+async def get_pending_requests_by_book_copy(
+    db: AsyncSession,
+    book_copy_id: int,
+    notification_type: NotificationType,
+    status: NotificationStatus,
+):
+    result = await db.execute(
+        select(Notifications).where(
+            Notifications.book_copy_id == book_copy_id,
+            Notifications.notification_type == notification_type,
+            Notifications.status == status,
+        )
+    )
+    return result.scalars().all()

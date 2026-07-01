@@ -248,6 +248,12 @@ async def resolve_notification(
             await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
             await repo.create_notification(db, borrow_action)
 
+            await _invalidate_other_requests(
+                db,
+                book_copy_id=notification.book_copy_id,
+                exclude_notification_id=notification.id,
+            )
+
         elif (
             notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
             and notification.status == NotificationStatus.APPROVED
@@ -359,5 +365,33 @@ async def check_due_date_notifications(
             db,
             due_notification,
         )
+
+    await db.commit()
+
+
+async def _invalidate_other_requests(
+    db: AsyncSession,
+    *,
+    book_copy_id: int,
+    exclude_notification_id: int,
+):
+    """
+    Reject all pending REQUEST_BOOK notifications
+    except the accepted one.
+    """
+
+    pending_requests = await repo.get_pending_requests_by_book_copy(
+        db,
+        book_copy_id=book_copy_id,
+        notification_type=NotificationType.REQUEST_BOOK,
+        status=NotificationStatus.PENDING,
+    )
+
+    for req in pending_requests:
+        if req.id == exclude_notification_id:
+            continue
+
+        req.status = NotificationStatus.REJECTED
+        req.resolved_at = datetime.now(timezone.utc)
 
     await db.commit()
