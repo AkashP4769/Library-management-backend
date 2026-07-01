@@ -58,6 +58,7 @@ class ShelfListResponse(BaseModel):
     shelves: list[ShelfResponse]
 
 class ShelfBookResponse(BaseModel):
+    id:int
     isbn: str
     title: str
     author: str

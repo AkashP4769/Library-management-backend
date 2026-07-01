@@ -66,6 +66,20 @@ async def get_reviews(
 
 
 @router.get(
+    "/user/review",
+    response_model=list[ReviewResponse],
+)
+async def get_user_reviews(
+    db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
+):
+    return await service.get_user_reviews(
+        db=db,
+        user_id=_current_user.id,
+    )
+
+
+@router.get(
     "/{review_id}",
     response_model=ReviewResponse,
 )

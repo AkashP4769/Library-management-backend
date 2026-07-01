@@ -56,6 +56,21 @@ async def get_reviews(
     return result.scalars().all()
 
 
+async def get_user_reviews(
+    db: AsyncSession,
+    user_id: int | None = None,
+) -> list[Review]:
+
+    stmt = select(Review)
+
+    if user_id is not None:
+        stmt = stmt.where(Review.user_id == user_id)
+
+    result = await db.execute(stmt)
+
+    return result.scalars().all()
+
+
 async def get_review(
     db: AsyncSession,
     review_id: int,
