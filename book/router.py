@@ -1,22 +1,22 @@
-
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 from auth.dependencies import get_current_user
 from auth.schemas import TokenPayload
-from exceptions import (AppException,
+from exceptions import (
+    AppException,
     NotFoundException,
     ConflictException,
     BadRequestException,
     UnauthorizedException,
     ForbiddenException,
-    DBException )
+    DBException,
+)
 from book.schemas import (
     BookCreateRequest,
     BookResponse,
     BookUpdateRequest,
-    BookAPIResponse
+    BookAPIResponse,
 )
 from book import service
 from database.connection import get_db
@@ -28,17 +28,13 @@ router = APIRouter(
 )
 
 
-
 @router.post(
     "",
     response_model=BookResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book(
-    payload: BookCreateRequest = Depends(
-        BookCreateRequest.as_form
-
-    ),
+    payload: BookCreateRequest = Depends(BookCreateRequest.as_form),
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
@@ -66,19 +62,33 @@ async def get_books(
 ):
 
     return await service.get_books(db)
-@router.get(
-        "/isbn/api/{isbn}",
-        response_model=BookAPIResponse
-)
-async def get_book_by_isbn_by_api(
-     isbn: str,
-     _current_user: TokenPayload = Depends(get_current_user),
+
+
+@router.get("/search/{genre}")
+async def search_book_by_genre(
+    genre: str,
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
 ):
     try:
-        return await service.get_by_isbn_by_api(
-            isbn=isbn
+        return await service.search_book_by_genre(genre, book_id, db)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
         )
-    except :
+
+
+@router.get("/isbn/api/{isbn}", response_model=BookAPIResponse)
+async def get_book_by_isbn_by_api(
+    isbn: str,
+    _current_user: TokenPayload = Depends(get_current_user),
+):
+    try:
+        return await service.get_by_isbn_by_api(isbn=isbn)
+    except:
         print("yessssss")
         raise NotFoundException("Book Not Found")
 
@@ -99,6 +109,8 @@ async def get_book_by_isbn(
         )
     except ValueError:
         raise NotFoundException("Book Not Found")
+
+
 @router.get(
     "/{book_id}",
     response_model=BookResponse,

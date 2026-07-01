@@ -137,7 +137,7 @@ async def update_book(
 async def delete_book(
     db: AsyncSession,
     book_id: int,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> None:
 
     book = await repo.get_by_id(db, book_id)
@@ -171,3 +171,7 @@ async def search_books(
         db,
         **filters,
     )
+
+
+async def search_book_by_genre(genre: str, book_id: int, db: AsyncSession):
+    return await repo.search_book_by_genre(genre=genre, book_id=book_id, db=db)

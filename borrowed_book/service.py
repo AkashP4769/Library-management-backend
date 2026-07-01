@@ -9,11 +9,17 @@ from audit import service as audit_service
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo
 from borrowed_book.schema import BorrowBookRequest, BorrowedBookDetailsResponse
-from exceptions import BadRequestException, ConflictException, DBException, NotFoundException
+from exceptions import (
+    BadRequestException,
+    ConflictException,
+    DBException,
+    NotFoundException,
+)
 from models.audit import AuditAction
 from models.book_copy import BookCopyStatus
 from models.borrowed_book import BorrowStatus, BorrowedBook
 from user import repository as user_repo
+
 
 async def get_borrowed_books_details(
     db: AsyncSession,
@@ -79,7 +85,7 @@ async def get_borrowed_books_details(
 async def borrow_book(
     db: AsyncSession,
     payload: BorrowBookRequest,
-    actor_user_id: int,
+    actor_user_id: int = 1,
 ) -> BorrowedBook:
 
     book_copy = await book_copy_repo.get_available_book_copy(
@@ -89,9 +95,7 @@ async def borrow_book(
     )
 
     if book_copy is None:
-        raise NotFoundException(
-            "No available copy found for the given ISBN and shelf."
-        )
+        raise NotFoundException("No available copy found for the given ISBN and shelf.")
 
     user = await user_repo.get_by_id(
         db=db,
@@ -175,7 +179,7 @@ async def get_borrowed_book(
 async def return_book(
     db: AsyncSession,
     borrow_id: int,
-    actor_user_id: int =1,
+    actor_user_id: int = 1,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -224,7 +228,7 @@ async def return_book(
 async def renew_book(
     db: AsyncSession,
     borrow_id: int,
-    actor_user_id: int =1,
+    actor_user_id: int = 1,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
