@@ -44,7 +44,10 @@ class ReviewListResponse(BaseModel):
 
 class ReviewBookResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    id: int
+    isbn: str
     name: str
+    user_id: int
     content: str | None
     rating: float | None
     created_at: datetime

@@ -21,7 +21,7 @@ async def create_review(
 ) -> Review:
     review = Review(
         isbn=payload.isbn,
-        user_id=current_user.user_id,
+        user_id=current_user.id,
         content=payload.content,
         rating=payload.rating,
     )

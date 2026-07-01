@@ -43,7 +43,7 @@ async def create_review(
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=current_user.user_id,
+        actor_user_id=current_user.id,
         action_type=AuditAction.CREATE,
         entity_type="REVIEW",
         entity_id=str(review.id),
@@ -103,12 +103,15 @@ async def get_book_review(
     )
 
     if not reviews:
-        raise NotFoundException("Review Not Found")
+        reviews = []
 
     return [
         ReviewBookResponse(
+            id=review.id,
+            isbn=review.isbn,
             name=review.user.name,
             content=review.content,
+            user_id=review.user_id,
             rating=review.rating,
             created_at=review.created_at,
             updated_at=review.updated_at,
