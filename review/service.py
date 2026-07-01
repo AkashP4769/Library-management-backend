@@ -71,6 +71,20 @@ async def get_reviews(
     )
 
 
+async def get_user_reviews(
+    db: AsyncSession,
+    user_id: int | None = None,
+) -> list[Review]:
+    """
+    Get reviews with optional filters.
+    """
+
+    return await repo.get_reviews(
+        db=db,
+        user_id=user_id,
+    )
+
+
 async def get_review(
     db: AsyncSession,
     review_id: int,
