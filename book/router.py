@@ -17,6 +17,7 @@ from book.schemas import (
     BookResponse,
     BookUpdateRequest,
     BookAPIResponse,
+    RequestedBookCopySchema,
 )
 from book import service
 from database.connection import get_db
@@ -113,6 +114,20 @@ async def get_book_by_isbn(
 
 
 @router.get(
+    "/requests",
+    response_model=list[RequestedBookCopySchema],
+)
+async def get_requested_books_route(
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user),
+):
+    return await service.get_user_requested_books(
+        db=db,
+        user_id=current_user.id,
+    )
+
+
+@router.get(
     "/{book_id}",
     response_model=BookResponse,
 )
@@ -175,6 +190,7 @@ async def delete_book(
 
     except ValueError as e:
         raise NotFoundException("Book Not Found")
+
 
 @router.get(
     "/{isbn}/shelves",

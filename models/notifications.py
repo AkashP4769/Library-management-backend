@@ -22,6 +22,7 @@ class NotificationStatus(str, Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    SEEN = "SEEN"
 
 
 class NotificationType(str, Enum):
@@ -31,6 +32,8 @@ class NotificationType(str, Enum):
     IN_STOCK_NOTIFICATION = "IN_STOCK_NOTIFICATION"
     BOOK_BORROW_ACCEPTED = "BOOK_BORROW_ACCEPTED"
     BOOK_BORROW_REJECTED = "BOOK_BORROW_REJECTED"
+    BOOK_RETURN_ACCEPTED = "BOOK_RETURN_ACCEPTED"
+    BOOK_RETURN_REJECTED = "BOOK_RETURN_REJECTED"
 
 
 class Notifications(Entity):

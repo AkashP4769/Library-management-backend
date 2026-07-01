@@ -5,12 +5,14 @@ Repository layer for Book.
 from datetime import datetime
 import requests
 from sqlalchemy import and_, select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from audit import service as audit_service
 from models.book import Book
 from models.shelf import Shelf
 from book.schemas import BookAPIResponse, BookCreateRequest, BookUpdateRequest
 from models.book_copy import BookCopy
+from models.notifications import Notifications, NotificationType
 
 
 async def create(
@@ -225,3 +227,28 @@ async def get_shelves_of_book(
 
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def get_user_requested_books(
+    db: AsyncSession,
+    user_id: int,
+):
+    query = (
+        select(BookCopy)
+        .join(
+            Notifications,
+            Notifications.book_copy_id == BookCopy.id,
+        )
+        .where(
+            Notifications.sender_id == user_id,
+            Notifications.notification_type == NotificationType.REQUEST_BOOK,
+        )
+        .options(
+            joinedload(BookCopy.book),
+        )
+        .order_by(Notifications.created_at.desc())
+    )
+
+    result = await db.execute(query)
+
+    return list(result.scalars().unique().all())
