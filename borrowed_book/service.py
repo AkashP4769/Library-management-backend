@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
+from auth.schemas import TokenPayload
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo
 from borrowed_book.schema import BorrowBookRequest, BorrowedBookDetailsResponse
@@ -56,6 +57,7 @@ async def get_borrowed_books_details(
                 book_copy_id=borrowed_book.book_copy.id,
                 isbn=borrowed_book.book_copy.book.isbn,
                 title=borrowed_book.book_copy.book.title,
+                image_url=borrowed_book.book_copy.book.image_url,
                 author=borrowed_book.book_copy.book.author,
                 genre=borrowed_book.book_copy.book.genre,
                 publisher=borrowed_book.book_copy.book.publisher,
@@ -85,7 +87,7 @@ async def get_borrowed_books_details(
 async def borrow_book(
     db: AsyncSession,
     payload: BorrowBookRequest,
-    actor_user_id: int = 1,
+    current_user: TokenPayload,
 ) -> BorrowedBook:
 
     book_copy = await book_copy_repo.get_available_book_copy(
@@ -99,7 +101,7 @@ async def borrow_book(
 
     user = await user_repo.get_by_id(
         db=db,
-        user_id=payload.user_id,
+        user_id=current_user.id,
     )
 
     if user is None:
@@ -116,7 +118,7 @@ async def borrow_book(
     borrowed_book = await repo.borrow_book(
         db=db,
         book_copy_id=book_copy.id,
-        user_id=payload.user_id,
+        user_id=current_user.id,
     )
 
     await book_copy_repo.update_status(
@@ -127,7 +129,7 @@ async def borrow_book(
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=actor_user_id,
+        actor_user_id=current_user.id,
         action_type=AuditAction.BORROW,
         entity_type="BORROWED_BOOK",
         entity_id=str(borrowed_book.id),
@@ -179,7 +181,8 @@ async def get_borrowed_book(
 async def return_book(
     db: AsyncSession,
     borrow_id: int,
-    actor_user_id: int = 1,
+    shelf_id: int,
+    current_user: TokenPayload,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -210,11 +213,12 @@ async def return_book(
             db=db,
             book_copy=book_copy,
             status=BookCopyStatus.AVAILABLE,
+            shelf_id=shelf_id,
         )
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=actor_user_id,
+        actor_user_id=current_user.id,
         action_type=AuditAction.RETURN,
         entity_type="BORROWED_BOOK",
         entity_id=str(borrowed_book.id),

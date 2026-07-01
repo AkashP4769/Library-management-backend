@@ -137,8 +137,10 @@ async def update_status(
     db: AsyncSession,
     book_copy: BookCopy,
     status: BookCopyStatus,
+    shelf_id: int,
 ) -> BookCopy:
     book_copy.status = status
+    book_copy.shelf_id = shelf_id
 
     await db.commit()
     await db.refresh(book_copy)

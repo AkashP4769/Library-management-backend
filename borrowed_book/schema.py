@@ -12,7 +12,6 @@ from models.borrowed_book import BorrowStatus
 class BorrowBookRequest(BaseModel):
     isbn: str
     shelf_id: int
-    user_id: int
 
 
 class BorrowedBookResponse(BaseModel):
@@ -50,6 +49,8 @@ class BorrowedBookDetailsResponse(BaseModel):
     title: str
     author: str
     genre: str | None
+    image_url: str | None
+    publisher: str | None
 
     shelf_code: str
 
@@ -61,5 +62,6 @@ class BorrowedBookDetailsResponse(BaseModel):
 
     renewal_count: int
     fine_amount: float
+    
 class BorrowedBookDetailsListResponse(BaseModel):
     borrowed_books: list[BorrowedBookDetailsResponse]
