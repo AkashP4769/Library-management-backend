@@ -37,6 +37,7 @@ async def create_review(
         return await service.create_review(
             db=db,
             payload=payload,
+            current_user=_current_user
         )
 
     except ValueError as e:

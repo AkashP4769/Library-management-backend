@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from auth.schemas import TokenPayload
 from models.review import Review
 from review.schema import (
     ReviewCreateRequest,
@@ -16,10 +17,11 @@ from review.schema import (
 async def create_review(
     db: AsyncSession,
     payload: ReviewCreateRequest,
+    current_user: TokenPayload,
 ) -> Review:
     review = Review(
         isbn=payload.isbn,
-        user_id=payload.user_id,
+        user_id=current_user.user_id,
         content=payload.content,
         rating=payload.rating,
     )
