@@ -20,8 +20,10 @@ from shelf.repo import (
     get_by_id,
     get_by_shelf_code,
     update,
+    get_books_by_shelf
 )
 from shelf.schema import (
+    ShelfBookResponse,
     ShelfCreateRequest,
     ShelfUpdateRequest,
 )
@@ -179,3 +181,40 @@ async def delete_shelf(
     )
 
     return True
+
+
+async def get_books_by_shelfs(
+    db: AsyncSession,
+    shelf_id: int,
+) -> list[ShelfBookResponse]:
+    books = await get_books_by_shelf(
+        db=db,
+        shelf_id=shelf_id,
+    )
+
+    if not books:
+        raise NotFoundException(
+            detail="No books found on this shelf."
+        )
+
+    return [
+        ShelfBookResponse(
+            isbn=book.isbn,
+            title=book.title,
+            author=book.author,
+            genre=book.genre,
+            publisher=book.publisher,
+            language=book.language,
+            description=book.description,
+            image_url=book.image_url,
+            total_copies=book.total_copies,
+            available_copies=book.available_copies,
+            borrowed_copies=book.borrowed_copies,
+            damaged_copies=book.damaged_copies,
+            lost_copies=book.lost_copies,
+            average_rating=float(book.average_rating)
+            if book.average_rating is not None
+            else None,
+        )
+        for book in books
+    ]
