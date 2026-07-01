@@ -49,9 +49,10 @@ class User(Entity):
         "BorrowedBook",
         back_populates="user",
     )
+
     audit_logs: Mapped[list["AuditLog"]] = relationship(
-    "AuditLog",
-    back_populates="user",
+        "AuditLog",
+        back_populates="user",
     )
 
     received_notifications: Mapped[list["Notifications"]] = relationship(

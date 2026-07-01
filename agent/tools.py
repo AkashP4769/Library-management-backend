@@ -17,6 +17,8 @@ from langchain_core.tools import tool
 from models.book import Book
 from models.book_copy import BookCopy
 from agent.rag_service import get_rag_service
+import book.repo as books_repo
+from borrowed_book import repo as borrowed_repo
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +98,9 @@ def create_search_books_tool(db_session: AsyncSession):
             filters.append(Book.language.ilike(f"%{language}%"))
 
         # Handle availability filter
-        if available_only:
-            available_copy_query = select(BookCopy.id).where(
-                BookCopy.isbn == Book.isbn,
-                BookCopy.status == "AVAILABLE",
-            )
-            filters.append(exists(available_copy_query))
+        copy_stmt = select(BookCopy).where(BookCopy.isbn == Book.isbn)
+        copy_result = await db_session.execute(copy_stmt)
+        copies = copy_result.scalars().all()
 
         try:
             # Execute query
@@ -127,6 +126,7 @@ def create_search_books_tool(db_session: AsyncSession):
                     "isbn": book.isbn,
                     "genre": book.genre,
                     "language": book.language,
+                    "available": any(copy.status == "AVAILABLE" for copy in copies),
                 }
                 for book in books
             ]
@@ -180,6 +180,95 @@ def create_query_documents_tool():
     return query_documents
 
 
+def create_shelf_location_tool(db_session: AsyncSession):
+
+    @tool
+    async def shelf_location(isbn: str) -> list[dict]:
+        """
+        Retrieve shelf locations for available copies of a book using ISBN.
+
+        Args:
+            isbn: Book ISBN
+
+        Returns:
+            List of shelf details where the book is available.
+        """
+
+        if not isbn:
+            raise ValueError("ISBN is required")
+
+        try:
+            shelves = await books_repo.get_shelves_of_book(
+                db_session,
+                isbn,
+            )
+
+            return {
+                "found": len(shelves) > 0,
+                "shelves": [
+                    {
+                        "shelf_id": shelf.id,
+                        "shelf_code": shelf.shelf_code,
+                        "shelf_location": shelf.office_location,
+                        "capacity": shelf.capacity,
+                    }
+                    for shelf in shelves
+                ],
+            }
+
+        except Exception as e:
+            logger.error("Shelf lookup failed: %s", e)
+            raise
+
+    return shelf_location
+
+
+def borrowed_books_tool(db_session: AsyncSession):
+
+    @tool
+    async def borrowed_books(user_id: int) -> list[dict]:
+        """
+        Retrieve borrowing history of a user.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            List of borrowed books with status.
+        """
+
+        if not user_id:
+            raise ValueError("User ID is required")
+
+        try:
+            records = await borrowed_repo.get_user_borrow_history(
+                db_session,
+                user_id,
+            )
+
+            return {
+                "has_history": len(records) > 0,
+                "borrowed_books": [
+                    {
+                        "title": book.title,
+                        "author": book.author,
+                        "isbn": book.isbn,
+                        "borrowed_at": borrowed.created_at,
+                        "due_date": borrowed.due_date,
+                        "returned_at": borrowed.returned_at,
+                        "status": borrowed.status,
+                    }
+                    for borrowed, book in records
+                ],
+            }
+
+        except Exception as e:
+            logger.error("Borrow history lookup failed: %s", e)
+            raise
+
+    return borrowed_books
+
+
 def create_agent_tools(db_session: AsyncSession) -> list:
     """
     Create all tools available to the agent.
@@ -193,4 +282,6 @@ def create_agent_tools(db_session: AsyncSession) -> list:
     return [
         create_search_books_tool(db_session),
         create_query_documents_tool(),
+        create_shelf_location_tool(db_session),
+        borrowed_books_tool(db_session),
     ]

@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict, Field
 class ReviewCreateRequest(BaseModel):
     isbn: str
     content: str | None = None
-    user_id: int
     rating: float | None = Field(
         default=None,
         ge=1.0,
@@ -32,7 +31,6 @@ class ReviewResponse(BaseModel):
 
     id: int
     isbn: str
-    user_id: int
     content: str | None
     rating: float | None
     created_at: datetime

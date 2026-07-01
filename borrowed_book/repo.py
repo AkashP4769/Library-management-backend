@@ -10,10 +10,11 @@ from sqlalchemy.orm import joinedload
 
 from book_copy.schema import BookCopyStatus
 from models.book_copy import BookCopy
-from models.borrowed_book import BorrowStatus
+from models.borrowed_book import BorrowStatus, BorrowedBook
 from borrowed_book.schema import BorrowBookRequest
 from models.borrowed_book import BorrowedBook
 from models.book_copy import BookCopy
+from models.book import Book
 
 
 async def get_borrowed_books_details(
@@ -221,7 +222,6 @@ async def return_book(
         overdue_days = (borrowed_book.returned_at - borrowed_book.due_date).days
 
         borrowed_book.fine_amount = overdue_days * 10
-        
 
     await db.commit()
     await db.refresh(borrowed_book)
@@ -263,3 +263,21 @@ async def get_active_borrows_by_isbn(
     result = await db.execute(stmt)
 
     return result.scalars().all()
+
+
+async def get_user_borrow_history(
+    db: AsyncSession,
+    user_id: int,
+) -> list[tuple[BorrowedBook, Book]]:
+
+    stmt = (
+        select(BorrowedBook, Book)
+        .join(Book, BorrowedBook.book_id == Book.id)
+        .where(BorrowedBook.user_id == user_id)
+        .order_by(BorrowedBook.borrowed_at.desc())
+        .limit(10)
+    )
+
+    result = await db.execute(stmt)
+
+    return result.all()

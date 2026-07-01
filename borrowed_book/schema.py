@@ -49,20 +49,24 @@ class BorrowedBookDetailsResponse(BaseModel):
     isbn: str
     title: str
     author: str
-    genre: str | None
-    image_url: str | None
-    publisher: str | None
+    genre: str | None = None
+    image_url: str | None = None
+    publisher: str | None = None
+    language: str | None = None
 
+    shelf_id: int
     shelf_code: str
+    office_location: str | None = None
 
     borrowed_at: datetime
     due_date: datetime
     returned_at: datetime | None
 
     status: BorrowStatus
-    image_url: str
     renewal_count: int
     fine_amount: float
+    created_at: datetime
+    updated_at: datetime | None = None
 
 
 class BorrowedBookDetailsListResponse(BaseModel):
