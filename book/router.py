@@ -20,6 +20,7 @@ from book.schemas import (
 )
 from book import service
 from database.connection import get_db
+from shelf.schema import ShelfResponse
 
 
 router = APIRouter(
@@ -172,5 +173,23 @@ async def delete_book(
             book_id,
         )
 
+    except ValueError as e:
+        raise NotFoundException("Book Not Found")
+
+@router.get(
+    "/{isbn}/shelves",
+    response_model=list[ShelfResponse],
+)
+async def get_shelves_of_book(
+    isbn: str,
+    db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
+):
+    try:
+        shelves = await service.get_shelves_of_book(
+            db=db,
+            isbn=isbn,
+        )
+        return shelves
     except ValueError as e:
         raise NotFoundException("Book Not Found")
