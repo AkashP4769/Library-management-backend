@@ -145,6 +145,7 @@ async def get_recent_activities(db, range):
             "user": user.name,
             "book_copy_id": borrow.book_copy_id,
             "status": borrow.status,
+            "image_url": book.image_url,
             "date": borrow.borrowed_at,
             "title": book.title,
             "action": "Borrowed"
