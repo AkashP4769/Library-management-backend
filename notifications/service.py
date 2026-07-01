@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -109,7 +110,7 @@ async def _validate_notification_type_rules(
     )
 
     if payload.notification_type == NotificationType.REQUEST_BOOK:
-        if book_copy.is_available:
+        if book_copy.status == BookCopyStatus.AVAILABLE:
             raise BadRequestException("Book is already available.")
 
     elif payload.notification_type == NotificationType.DUE_DATE_REMINDER:
@@ -229,20 +230,39 @@ async def resolve_notification(
         notification.status = payload.status
         notification.resolved_at = datetime.utcnow()
 
-        if notification.notification_type == NotificationType.REQUEST_BOOK:
-            request_status = (
-                NotificationType.BOOK_BORROW_ACCEPTED
-                if payload.status == NotificationStatus.ACCEPTED
-                else NotificationType.BOOK_BORROW_REJECTED
+        if (
+            notification.notification_type == NotificationType.REQUEST_BOOK
+            and notification.status == NotificationStatus.APPROVED
+        ):
+            borrowed_book = await borrow_repo.get_active_borrow(
+                db,
+                notification.book_copy_id,
             )
             borrow_action = Notifications(
                 receiver_id=notification.sender_id,
                 sender_id=notification.receiver_id,
                 book_copy_id=notification.book_copy_id,
-                notification_type=request_status,
+                notification_type=NotificationType.BOOK_RETURN_ACCEPTED,
                 status=NotificationStatus.PENDING,
             )
+            await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
             await repo.create_notification(db, borrow_action)
+
+            await _invalidate_other_requests(
+                db,
+                book_copy_id=notification.book_copy_id,
+                exclude_notification_id=notification.id,
+            )
+
+        elif (
+            notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
+            and notification.status == NotificationStatus.APPROVED
+        ):
+            await borrow_repo.borrow_book(
+                db=db,
+                book_copy_id=notification.book_copy_id,
+                user_id=notification.receiver_id,
+            )
 
         return await repo.update_notification(db, notification, payload)
 
@@ -254,13 +274,13 @@ async def resolve_notification(
 async def create_request_notification(
     db: AsyncSession,
     payload: CreateBorrowRequest,
-    current_user: TokenPayload,
+    user_id: int,
 ):
     try:
         # Prevent duplicate request from same sender
         existing_request = await repo.get_user_requests(
             db=db,
-            user_id=current_user.id,
+            user_id=user_id,
             status=NotificationStatus.PENDING,
             isbn=payload.isbn,
             resolved=False,
@@ -270,7 +290,7 @@ async def create_request_notification(
             raise BadRequestException("Already requested for this book.")
 
         # Step 1: Get all borrowed books with the given ISBN
-        borrowed_books = await borrow_repo.get_active_borrows_by_isbn(
+        borrowed_books = await borrow_repo.get_active_borrows_by_filter(
             db=db,
             isbn=payload.isbn,
         )
@@ -283,12 +303,11 @@ async def create_request_notification(
         # Step 2: Notify all current holders
         for borrowed in borrowed_books:
             notification = Notifications(
-                sender_id=current_user.id,
+                sender_id=user_id,
                 receiver_id=borrowed.user_id,
                 book_copy_id=borrowed.book_copy_id,
                 notification_type=NotificationType.REQUEST_BOOK,
                 status=NotificationStatus.PENDING,
-                resolved=False,
             )
 
             created = await repo.create_notification(db, notification)
@@ -301,3 +320,78 @@ async def create_request_notification(
     except SQLAlchemyError as e:
         await db.rollback()
         raise DBException(f"Failed to create request notifications.{e}")
+
+
+async def check_due_date_notifications(
+    db: AsyncSession,
+    user_id: int,
+):
+    """
+    Checks active borrowed books for due/overdue status
+    and creates due-date reminders if not already created.
+    """
+
+    active_borrows = await borrow_repo.get_active_borrows_by_filter(db, user_id=user_id)
+
+    if not active_borrows:
+        return
+
+    now = datetime.now(timezone.utc)
+    for borrow in active_borrows:
+        if borrow.due_date > now:
+            continue
+
+        existing = await repo.get_user_notifications(
+            db,
+            user_id=user_id,
+            book_copy_id=borrow.book_copy_id,
+            notification_type=NotificationType.DUE_DATE_REMINDER,
+            status=NotificationStatus.PENDING,
+            resolved=False,
+        )
+
+        if existing:
+            continue
+
+        due_notification = Notifications(
+            receiver_id=user_id,
+            sender_id=None,
+            book_copy_id=borrow.book_copy_id,
+            notification_type=NotificationType.DUE_DATE_REMINDER,
+            status=NotificationStatus.PENDING,
+        )
+
+        await repo.create_notification(
+            db,
+            due_notification,
+        )
+
+    await db.commit()
+
+
+async def _invalidate_other_requests(
+    db: AsyncSession,
+    *,
+    book_copy_id: int,
+    exclude_notification_id: int,
+):
+    """
+    Reject all pending REQUEST_BOOK notifications
+    except the accepted one.
+    """
+
+    pending_requests = await repo.get_pending_requests_by_book_copy(
+        db,
+        book_copy_id=book_copy_id,
+        notification_type=NotificationType.REQUEST_BOOK,
+        status=NotificationStatus.PENDING,
+    )
+
+    for req in pending_requests:
+        if req.id == exclude_notification_id:
+            continue
+
+        req.status = NotificationStatus.REJECTED
+        req.resolved_at = datetime.now(timezone.utc)
+
+    await db.commit()

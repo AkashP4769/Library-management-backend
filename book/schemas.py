@@ -10,13 +10,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class BookBase(BaseModel):
-    isbn: str = Form(...),
-    title: str = Form(...),
-    author: str = Form(...),
-    genre: str = Form(""),
-    publisher: str = Form(""),
-    language: str = Form(""),
-    description: str = Form(""),
+    isbn: str = (Form(...),)
+    title: str = (Form(...),)
+    author: str = (Form(...),)
+    genre: str = (Form(""),)
+    publisher: str = (Form(""),)
+    language: str = (Form(""),)
+    description: str = (Form(""),)
     image_url: str | None = None
 
 
@@ -56,8 +56,9 @@ class BookCreateRequest(BaseModel):
             image_url=image_url,
         )
 
+
 class BookUpdateRequest(BaseModel):
-    """Schema used to update an existing book."""   
+    """Schema used to update an existing book."""
 
     isbn: str | None = Field(default=None, max_length=20)
     title: str | None = Field(default=None, max_length=255)
@@ -90,3 +91,11 @@ class BookAPIResponse(BaseModel):
     publisher: str | None = Field(default=None, max_length=255)
     language: str | None = Field(default=None, max_length=50)
     cover_urls: list[str | None] | None = None
+
+
+class RequestedBookCopySchema(BaseModel):
+    id: int
+    status: str
+    book: BookResponse
+
+    model_config = ConfigDict(from_attributes=True)

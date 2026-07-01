@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth.dependencies import get_current_user
 from auth.schemas import TokenPayload
+from models.book import Book
 
 from database.connection import get_db
 from notifications.schema import (
@@ -61,7 +62,6 @@ async def create_broadcast_notifications_route(
     "/user/",
     response_model=list[NotificationResponse],
     status_code=status.HTTP_200_OK,
-
 )
 async def get_user_notifications_route(
     db: AsyncSession = Depends(get_db),
@@ -116,4 +116,6 @@ async def create_request_notification_route(
     _current_user: TokenPayload = Depends(get_current_user),
 ):
 
-    return await create_request_notification(db=db, payload=payload)
+    return await create_request_notification(
+        db=db, payload=payload, user_id=_current_user.id
+    )

@@ -3,6 +3,7 @@ Database operations for Request.
 """
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.notifications import NotificationType, Notifications, NotificationStatus
@@ -16,8 +17,17 @@ async def create_notification(
 ) -> Notifications:
     db.add(notification)
     await db.commit()
-    await db.refresh(notification)
-    return notification
+
+    result = await db.execute(
+        select(Notifications)
+        .where(Notifications.id == notification.id)
+        .options(
+            joinedload(Notifications.sender),
+            joinedload(Notifications.book_copy).joinedload(BookCopy.book),
+        )
+    )
+
+    return result.scalar_one()
 
 
 async def get_notification_by_id(
@@ -25,11 +35,17 @@ async def get_notification_by_id(
     notification_id: int,
 ) -> Notifications | None:
     result = await db.execute(
-        select(Notifications).where(
+        select(Notifications)
+        .where(
             Notifications.id == notification_id,
             Notifications.resolved_at.is_(None),
         )
+        .options(
+            joinedload(Notifications.sender),
+            joinedload(Notifications.book_copy).joinedload(BookCopy.book),
+        )
     )
+
     return result.scalar_one_or_none()
 
 
@@ -47,13 +63,21 @@ async def get_all_notifications(
 async def get_user_notifications(
     db: AsyncSession,
     user_id: int,
-    status: NotificationStatus | None = None,
+    status: NotificationStatus = NotificationStatus.PENDING,
     notification_type: NotificationType | None = None,
     resolved: bool | None = None,
     book_copy_id: int | None = None,
 ) -> list[Notifications]:
-    query = select(Notifications).where(
-        Notifications.receiver_id == user_id,
+
+    query = (
+        select(Notifications)
+        .where(
+            Notifications.receiver_id == user_id,
+        )
+        .options(
+            joinedload(Notifications.sender),
+            joinedload(Notifications.book_copy).joinedload(BookCopy.book),
+        )
     )
 
     if status:
@@ -69,47 +93,6 @@ async def get_user_notifications(
     if book_copy_id:
         query = query.where(
             Notifications.book_copy_id == book_copy_id,
-        )
-
-    if resolved is True:
-        query = query.where(
-            Notifications.resolved_at.is_not(None),
-        )
-
-    elif resolved is False:
-        query = query.where(
-            Notifications.resolved_at.is_(None),
-        )
-
-    query = query.order_by(
-        Notifications.created_at.desc(),
-    )
-
-    result = await db.execute(query)
-
-    return list(result.scalars().all())
-
-
-async def get_user_requests(
-    db: AsyncSession,
-    user_id: int,
-    status: NotificationStatus | None = None,
-    resolved: bool | None = None,
-    isbn: int | None = None,
-) -> list[Notifications]:
-    query = select(Notifications).where(
-        Notifications.sender_id == user_id,
-        Notifications.notification_type == NotificationType.REQUEST_BOOK,
-    )
-
-    if status:
-        query = query.where(
-            Notifications.status == status,
-        )
-
-    if isbn is not None:
-        query = query.join(BookCopy).where(
-            BookCopy.isbn == isbn,
         )
 
     if resolved is True:
@@ -155,7 +138,85 @@ async def create_bulk_notifications(
     db.add_all(notifications)
     await db.commit()
 
-    for notification in notifications:
-        await db.refresh(notification)
+    ids = [n.id for n in notifications]
 
-    return notifications
+    result = await db.execute(
+        select(Notifications)
+        .where(Notifications.id.in_(ids))
+        .options(
+            joinedload(Notifications.sender),
+            joinedload(Notifications.book_copy).joinedload(BookCopy.book),
+        )
+    )
+
+    return list(result.scalars().all())
+
+
+async def get_user_requests(
+    db: AsyncSession,
+    user_id: int,
+    isbn: str | None = None,
+    book_copy_id: int | None = None,
+    status: NotificationStatus | None = None,
+    resolved: bool | None = None,
+) -> list[Notifications]:
+
+    query = (
+        select(Notifications)
+        .where(
+            Notifications.sender_id == user_id,
+            Notifications.notification_type == NotificationType.REQUEST_BOOK,
+        )
+        .options(
+            joinedload(Notifications.sender),
+            joinedload(Notifications.book_copy).joinedload(BookCopy.book),
+        )
+    )
+
+    if isbn:
+        query = (
+            query.join(Notifications.book_copy)
+            .join(BookCopy.book)
+            .where(
+                BookCopy.book.has(isbn=isbn),
+            )
+        )
+
+    if status:
+        query = query.where(
+            Notifications.status == status,
+        )
+
+    if resolved is True:
+        query = query.where(
+            Notifications.resolved_at.is_not(None),
+        )
+
+    elif resolved is False:
+        query = query.where(
+            Notifications.resolved_at.is_(None),
+        )
+
+    query = query.order_by(
+        Notifications.created_at.desc(),
+    )
+
+    result = await db.execute(query)
+
+    return list(result.scalars().all())
+
+
+async def get_pending_requests_by_book_copy(
+    db: AsyncSession,
+    book_copy_id: int,
+    notification_type: NotificationType,
+    status: NotificationStatus,
+):
+    result = await db.execute(
+        select(Notifications).where(
+            Notifications.book_copy_id == book_copy_id,
+            Notifications.notification_type == notification_type,
+            Notifications.status == status,
+        )
+    )
+    return result.scalars().all()

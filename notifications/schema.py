@@ -25,10 +25,47 @@ class NotificationUpdateRequest(BaseModel):
     status: NotificationStatus
 
 
-class NotificationResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class NotificationSenderSchema(BaseModel):
+    id: int
+    name: str
+    email: str
 
-    sender_id: int | None
-    book_copy_id: int | None
+    class Config:
+        from_attributes = True
+
+
+class NotificationBookSchema(BaseModel):
+    id: int
+    title: str
+    isbn: int
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationBookCopySchema(BaseModel):
+    id: int
+    status: str
+    book: NotificationBookSchema | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationResponse(BaseModel):
+    id: int
+    receiver_id: int
+    sender_id: int | None = None
+    message: str | None = None
+
     notification_type: NotificationType
-    message: str | None
+    status: NotificationStatus
+
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+    sender: NotificationSenderSchema | None = None
+    book_copy: NotificationBookCopySchema | None = None
+
+    class Config:
+        from_attributes = True

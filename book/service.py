@@ -9,10 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
 from book import repo
-from book.schemas import BookCreateRequest, BookUpdateRequest
+from book.schemas import BookCreateRequest, BookUpdateRequest, RequestedBookCopySchema
 from exceptions import ConflictException, NotFoundException
 from models.audit import AuditAction
 from models.book import Book
+from models.book_copy import BookCopy
 from models.shelf import Shelf
 from utils import save_image
 
@@ -183,3 +184,13 @@ async def get_shelves_of_book(
     isbn: str,
 ) -> list[Shelf]:
     return await repo.get_shelves_of_book(db=db, isbn=isbn)
+
+
+async def get_user_requested_books(
+    db: AsyncSession,
+    user_id: int,
+) -> list[BookCopy]:
+    return await repo.get_user_requested_books(
+        db=db,
+        user_id=user_id,
+    )
