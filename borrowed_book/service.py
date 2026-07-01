@@ -60,20 +60,19 @@ async def get_borrowed_books_details(
                 image_url=borrowed_book.book_copy.book.image_url,
                 author=borrowed_book.book_copy.book.author,
                 genre=borrowed_book.book_copy.book.genre,
-                image_url=borrowed_book.book_copy.book.image_url,
-                # publisher=borrowed_book.book_copy.book.publisher,
-                # language=borrowed_book.book_copy.book.language,
-                # shelf_id=borrowed_book.book_copy.shelf.id,
+                publisher=borrowed_book.book_copy.book.publisher,
+                language=borrowed_book.book_copy.book.language,
+                shelf_id=borrowed_book.book_copy.shelf.id,
                 shelf_code=borrowed_book.book_copy.shelf.shelf_code,
-                # office_location=borrowed_book.book_copy.shelf.office_location,
+                office_location=borrowed_book.book_copy.shelf.office_location,
                 borrowed_at=borrowed_book.borrowed_at,
                 due_date=borrowed_book.due_date,
                 returned_at=borrowed_book.returned_at,
                 status=borrowed_book.status,
                 renewal_count=borrowed_book.renewal_count,
                 fine_amount=float(borrowed_book.fine_amount),
-                # created_at=borrowed_book.created_at,
-                # updated_at=borrowed_book.updated_at,
+                created_at=borrowed_book.created_at,
+                updated_at=borrowed_book.updated_at,
             )
             for borrowed_book in borrowed_books
         ]
@@ -126,6 +125,7 @@ async def borrow_book(
         db=db,
         book_copy=book_copy,
         status=BookCopyStatus.BORROWED,
+        shelf_id=payload.shelf_id,
     )
 
     await audit_service.create_audit_log(
