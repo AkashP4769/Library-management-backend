@@ -23,22 +23,22 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 async def login(
     form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
-    access_token, refresh_token = await auth_service.login(
+    access_token, refresh_token, user = await auth_service.login(
         db, form.username, form.password
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user_id=user.id, name=user.name, email=user.email, contact_number=user.contact_number, role=user.role)
 
 
 @router.post("/signup", response_model=TokenResponse)
 async def signup(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = await auth_service.register(db, body)
 
-    access_token, refresh_token = await auth_service.login(
+    access_token, refresh_token, user = await auth_service.login(
         db, user.email, body.password
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, user_id=user.id, name=user.name, email=user.email, contact_number=user.contact_number, role=user.role)
 
 
 @router.post("/refresh", response_model=TokenResponse)

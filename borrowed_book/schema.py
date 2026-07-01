@@ -45,6 +45,7 @@ class BorrowedBookDetailsResponse(BaseModel):
     user_email: str
 
     book_copy_id: int
+    book_id: int
 
     isbn: str
     title: str

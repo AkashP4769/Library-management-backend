@@ -54,6 +54,7 @@ async def get_borrowed_books_details(
                 user_id=borrowed_book.user.id,
                 user_name=borrowed_book.user.name,
                 user_email=borrowed_book.user.email,
+                book_id=borrowed_book.book_copy.book.id,
                 book_copy_id=borrowed_book.book_copy.id,
                 isbn=borrowed_book.book_copy.book.isbn,
                 title=borrowed_book.book_copy.book.title,
