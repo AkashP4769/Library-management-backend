@@ -43,3 +43,24 @@ async def get_all_users(db: AsyncSession) -> list[User]:
     res = await db.scalars(stmt)
 
     return res.all()
+
+
+async def update_user(
+    db: AsyncSession, user_id: int, name: str, email: str, contact_number: str
+):
+    result = await db.execute(
+        select(User).where(
+            User.id == user_id,
+            User.deleted_at.is_(None),
+        )
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        return None
+    user.name = name
+    user.email = email
+    user.contact_number = contact_number
+
+    await db.commit()
+    await db.refresh(user)
+    return user

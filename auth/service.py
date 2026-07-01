@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
-from auth.schemas import RegisterRequest
+from auth.schemas import RegisterRequest, UpdateUserRequest
 from auth.utils import (
     verify_password,
     hash_password,
@@ -30,17 +30,13 @@ async def login(
     )
 
     if user is None:
-        raise UnauthorizedException(
-            "Invalid username or password"
-        )
+        raise UnauthorizedException("Invalid username or password")
 
     if not verify_password(
         password,
         user.password_hash,
     ):
-        raise UnauthorizedException(
-            "Invalid username or password"
-        )
+        raise UnauthorizedException("Invalid username or password")
 
     access_token = create_access_token(
         {
@@ -83,9 +79,7 @@ async def register(
     )
 
     if existing:
-        raise ConflictException(
-            "User with this email already exists."
-        )
+        raise ConflictException("User with this email already exists.")
 
     password_hash = hash_password(
         body.password,
@@ -125,8 +119,37 @@ async def refresh(
     )
 
     if token is None:
-        raise UnauthorizedException(
-            "Invalid refresh token"
-        )
+        raise UnauthorizedException("Invalid refresh token")
 
     return token
+
+
+async def getUserbyId(db: AsyncSession, user_id: int):
+    user = await repository.get_by_id(db, user_id)
+    return {
+        "user_id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "contact_number": user.contact_number,
+        "role": user.role,
+    }
+
+
+async def update_user(payload: UpdateUserRequest, db: AsyncSession, user_id: int):
+    user = await repository.update_user(
+        db=db,
+        user_id=user_id,
+        name=payload.name,
+        email=payload.email,
+        contact_number=payload.contact_number,
+    )
+
+    if user is None:
+        raise ValueError("User not found")
+
+    return {
+        "user_id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "contact_number": user.contact_number,
+    }
