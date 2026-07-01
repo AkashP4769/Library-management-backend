@@ -35,6 +35,7 @@ class BorrowedBookResponse(BaseModel):
 class BorrowedBookListResponse(BaseModel):
     borrowed_books: list[BorrowedBookResponse]
 
+
 class BorrowedBookDetailsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,8 +59,10 @@ class BorrowedBookDetailsResponse(BaseModel):
     returned_at: datetime | None
 
     status: BorrowStatus
-
+    image_url: str
     renewal_count: int
     fine_amount: float
+
+
 class BorrowedBookDetailsListResponse(BaseModel):
     borrowed_books: list[BorrowedBookDetailsResponse]

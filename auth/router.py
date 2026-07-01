@@ -4,8 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import service as auth_service
 from auth import TokenResponse
-from auth.schemas import RegisterRequest, RefreshTokenRequest
+from auth.dependencies import get_current_user
+from auth.schemas import (
+    RegisterRequest,
+    RefreshTokenRequest,
+    TokenPayload,
+    UpdateUserRequest,
+    UserResponse,
+)
 from database import get_db
+from exceptions import NotFoundException
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -38,3 +46,33 @@ async def refresh_token(body: RefreshTokenRequest):
     token = await auth_service.refresh(body.refresh_token)
 
     return TokenResponse(access_token=token, refresh_token=body.refresh_token)
+
+
+@router.get("/user", response_model=UserResponse)
+async def getUserbyId(
+    db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
+):
+    user_id = _current_user.id
+    try:
+        details = await auth_service.getUserbyId(db, user_id)
+    except ValueError as e:
+        raise NotFoundException(str(e))
+
+    return details
+
+
+@router.patch("/user/update", response_model=UserResponse)
+async def update_user(
+    payload: UpdateUserRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user),
+):
+    try:
+        return await auth_service.update_user(
+            payload=payload,
+            db=db,
+            user_id=current_user.id,
+        )
+    except ValueError as e:
+        raise NotFoundException(str(e))

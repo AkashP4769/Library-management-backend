@@ -22,12 +22,13 @@ router = APIRouter(
     tags=["Borrowed Books"],
 )
 
+
 @router.get(
     "/details-by-user",
     response_model=BorrowedBookDetailsListResponse,
 )
 async def get_borrowed_books_details(
-    user_id: int | None = Query(default=None),
+    # user_id: int | None = Query(default=None),
     status: BorrowStatus | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1),
@@ -40,19 +41,17 @@ async def get_borrowed_books_details(
         status=status,
         page=page,
         limit=limit,
-        
     )
 
     return BorrowedBookDetailsListResponse(
         borrowed_books=borrowed_books,
     )
 
+
 @router.post(
     "",
     response_model=BorrowedBookResponse,
     status_code=status.HTTP_201_CREATED,
-    
-
 )
 async def borrow_book(
     payload: BorrowBookRequest,
@@ -83,12 +82,12 @@ async def get_borrowed_books_details(
         status=status,
         page=page,
         limit=limit,
-        
     )
 
     return BorrowedBookDetailsListResponse(
         borrowed_books=borrowed_books,
     )
+
 
 @router.get(
     "/{borrow_id}",
