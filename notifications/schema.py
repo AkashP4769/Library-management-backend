@@ -18,7 +18,6 @@ class NotificationCreateRequest(BaseModel):
 
 
 class CreateBorrowRequest(BaseModel):
-    sender_id: int | None = None
     isbn: str | None = None
 
 
