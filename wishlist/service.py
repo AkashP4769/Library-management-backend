@@ -2,9 +2,11 @@
 Service layer for Wishlist.
 """
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.schemas import TokenPayload
+from book import repo as book_repo
 from exceptions import ConflictException, NotFoundException
 from models.wishlist import Wishlist
 from wishlist import repo
@@ -20,7 +22,18 @@ async def add_to_wishlist(
     current_user: TokenPayload,
     request: WishlistCreateRequest,
 ) -> WishlistResponse:
+    # Check that the book exists
+    book = await book_repo.get_by_id(
+        db=db,
+        book_id=request.book_id,
+    )
 
+    if book is None:
+        raise NotFoundException(
+            detail="Book not found."
+        )
+
+    # Check for duplicate wishlist entry
     existing = await repo.get_wishlist_by_user_and_book(
         db=db,
         user_id=current_user.id,
@@ -37,10 +50,16 @@ async def add_to_wishlist(
         book_id=request.book_id,
     )
 
-    wishlist = await repo.create_wishlist(
-        db=db,
-        wishlist=wishlist,
-    )
+    try:
+        wishlist = await repo.create_wishlist(
+            db=db,
+            wishlist=wishlist,
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise ConflictException(
+            detail="Unable to add book to wishlist."
+        )
 
     return WishlistResponse(
         id=wishlist.id,
@@ -53,7 +72,17 @@ async def remove_from_wishlist(
     db: AsyncSession,
     current_user: TokenPayload,
     book_id: int,
-):
+) -> None:
+    # Check that the book exists
+    book = await book_repo.get_by_id(
+        db=db,
+        book_id=book_id,
+    )
+
+    if book is None:
+        raise NotFoundException(
+            detail="Book not found."
+        )
 
     wishlist = await repo.get_wishlist_by_user_and_book(
         db=db,
@@ -66,21 +95,32 @@ async def remove_from_wishlist(
             detail="Book not found in wishlist."
         )
 
-    await repo.delete_wishlist(
-        db=db,
-        wishlist=wishlist,
-    )
+    try:
+        await repo.delete_wishlist(
+            db=db,
+            wishlist=wishlist,
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise ConflictException(
+            detail="Unable to remove book from wishlist."
+        )
 
 
 async def get_user_wishlist(
     db: AsyncSession,
     current_user: TokenPayload,
 ) -> list[WishlistBookResponse]:
-
-    books = await repo.get_user_wishlist(
-        db=db,
-        user_id=current_user.id,
-    )
+    try:
+        books = await repo.get_user_wishlist(
+            db=db,
+            user_id=current_user.id,
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise ConflictException(
+            detail="Unable to retrieve wishlist."
+        )
 
     return [
         WishlistBookResponse(
