@@ -82,6 +82,7 @@ async def get_books_by_shelf(
 ):
     stmt = (
         select(
+            Book.id,
             Book.isbn,
             Book.title,
             Book.author,
@@ -135,6 +136,7 @@ async def get_books_by_shelf(
             BookCopy.shelf_id == shelf_id,
         )
         .group_by(
+            Book.id,
             Book.isbn,
             Book.title,
             Book.author,

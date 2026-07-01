@@ -199,6 +199,7 @@ async def get_books_by_shelfs(
 
     return [
         ShelfBookResponse(
+            id=book.id,
             isbn=book.isbn,
             title=book.title,
             author=book.author,
