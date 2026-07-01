@@ -66,9 +66,9 @@ class AuditLog(Entity):
     )
 
     audit_metadata: Mapped[dict[str, Any] | None] = mapped_column(
-    "metadata",
-    JSONB,
-    nullable=True,
+        "metadata",
+        JSONB,
+        nullable=True,
     )
 
     user: Mapped["User"] = relationship(
@@ -85,7 +85,7 @@ class AuditLog(Entity):
             "entity_id": self.entity_id,
             "old_value": self.old_value,
             "new_value": self.new_value,
-            "metadata": self.metadata,
+            "metadata": self.audit_metadata,
             "created_at": _datetime_to_iso(self.created_at),
             "updated_at": _datetime_to_iso(self.updated_at),
             "deleted_at": _datetime_to_iso(self.deleted_at),
