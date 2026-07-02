@@ -79,7 +79,25 @@ async def delete(
 async def get_books_by_shelf(
     db: AsyncSession,
     shelf_id: int,
+    q: str | None = None,
+    genre: str |None = None,
+    language: str | None = None,
+    author: str | None = None,
 ):
+    filters = [
+        BookCopy.shelf_id == shelf_id,
+        Book.deleted_at.is_(None),
+    ]
+
+    if q:
+        filters.append(Book.title.ilike(f"%{q}%"))
+    if genre:
+        filters.append(Book.genre.ilike(f"%{genre}%"))
+    if language:
+        filters.append(Book.language.ilike(f"%{language}%"))
+    if author:
+        filters.append(Book.author.ilike(f"%{author}%"))
+
     stmt = (
         select(
             Book.id,
@@ -124,17 +142,9 @@ async def get_books_by_shelf(
 
             func.avg(Review.rating).label("average_rating"),
         )
-        .join(
-            Book,
-            BookCopy.isbn == Book.isbn,
-        )
-        .outerjoin(
-            Review,
-            Review.isbn == Book.isbn,
-        )
-        .where(
-            BookCopy.shelf_id == shelf_id,
-        )
+        .join(Book, BookCopy.isbn == Book.isbn)
+        .outerjoin(Review, Review.isbn == Book.isbn)
+        .where(*filters)
         .group_by(
             Book.id,
             Book.isbn,
@@ -150,5 +160,4 @@ async def get_books_by_shelf(
     )
 
     result = await db.execute(stmt)
-
     return result.all()

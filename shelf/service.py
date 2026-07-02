@@ -186,10 +186,16 @@ async def delete_shelf(
 async def get_books_by_shelfs(
     db: AsyncSession,
     shelf_id: int,
+    q: str | None = None,
+    genre: str | None = None,
+    language: str | None = None,
 ) -> list[ShelfBookResponse]:
     books = await get_books_by_shelf(
         db=db,
         shelf_id=shelf_id,
+        q=q,
+        genre=genre,
+        language=language,
     )
 
     if not books:

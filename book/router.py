@@ -59,11 +59,15 @@ async def create_book(
     response_model=list[BookResponse],
 )
 async def get_books(
+    # search query parameters
+    q: str | None = None,
+    genre: str | None = None,
+    language: str | None = None,
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
 
-    return await service.get_books(db)
+    return await service.get_books(db, q=q, genre=genre, language=language)
 
 
 @router.get("/search/{genre}")
