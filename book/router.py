@@ -17,6 +17,7 @@ from book.schemas import (
     BookResponse,
     BookUpdateRequest,
     BookAPIResponse,
+    DeleteBookfromShelfRequest,
     RequestedBookCopySchema,
 )
 from book import service
@@ -97,6 +98,24 @@ async def get_book_by_isbn_by_api(
     except:
         print("yessssss")
         raise NotFoundException("Book Not Found")
+
+@router.delete("/shelf/{shelf_id}/books/{isbn}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_book_from_shelf(
+    payload: DeleteBookfromShelfRequest,
+    shelf_id: int,
+    isbn: str,
+    db: AsyncSession = Depends(get_db),
+    _current_user: TokenPayload = Depends(get_current_user),
+):
+    try:
+        await service.delete_book_from_shelf(
+            db=db,
+            shelf_id=shelf_id,
+            isbn=isbn,
+            quantity=payload.quantity,
+        )
+    except ValueError as e:
+        raise NotFoundException("Book or Shelf Not Found")
 
 
 @router.get(
