@@ -67,9 +67,13 @@ async def get_book(
 
 async def get_books(
     db: AsyncSession,
+    q: str | None = None,
+    genre: str | None = None,
+    language: str | None = None,
+
 ) -> list[Book]:
 
-    return await repo.get_all(db)
+    return await repo.get_all(db, q=q, genre=genre, language=language)
 
 
 async def get_by_isbn(

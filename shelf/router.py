@@ -127,6 +127,9 @@ async def delete(
 )
 async def get_books_by_shelf(
     shelf_id: int,
+    q: str | None = None,
+    genre: str | None = None,
+    language: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -136,4 +139,7 @@ async def get_books_by_shelf(
     return await get_books_by_shelfs(
         db=db,
         shelf_id=shelf_id,
+        q=q,
+        genre=genre,
+        language=language,
     )
