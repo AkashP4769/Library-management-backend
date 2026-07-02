@@ -35,6 +35,7 @@ async def create(
     await db.refresh(book)
     return book
 
+
 async def get_by_id(
     db: AsyncSession,
     book_id: int,
@@ -132,11 +133,11 @@ async def get_all(
     filters = [Book.deleted_at.is_(None)]
     if q:
         filters.append(
-        or_(
-            Book.title.ilike(f"%{q}%"),
-            Book.author.ilike(f"%{q}%"),
+            or_(
+                Book.title.ilike(f"%{q}%"),
+                Book.author.ilike(f"%{q}%"),
+            )
         )
-    )
     if genre:
         filters.append(Book.genre.ilike(f"%{genre}%"))
     if language:
@@ -250,6 +251,7 @@ async def get_user_requested_books(
         .join(
             Notifications,
             Notifications.book_copy_id == BookCopy.id,
+            Notifications.resolved_at.is_not(None),
         )
         .where(
             Notifications.sender_id == user_id,

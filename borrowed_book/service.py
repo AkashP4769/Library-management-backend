@@ -88,7 +88,7 @@ async def get_borrowed_books_details(
 async def borrow_book(
     db: AsyncSession,
     payload: BorrowBookRequest,
-    current_user: TokenPayload,
+    user_id: int,
 ) -> BorrowedBook:
 
     book_copy = await book_copy_repo.get_available_book_copy(
@@ -102,7 +102,7 @@ async def borrow_book(
 
     user = await user_repo.get_by_id(
         db=db,
-        user_id=current_user.id,
+        user_id=user_id,
     )
 
     if user is None:
@@ -119,7 +119,7 @@ async def borrow_book(
     borrowed_book = await repo.borrow_book(
         db=db,
         book_copy_id=book_copy.id,
-        user_id=current_user.id,
+        user_id=user_id,
     )
 
     await book_copy_repo.update_status(
@@ -131,7 +131,7 @@ async def borrow_book(
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=current_user.id,
+        actor_user_id=user_id,
         action_type=AuditAction.BORROW,
         entity_type="BORROWED_BOOK",
         entity_id=str(borrowed_book.id),
@@ -184,7 +184,7 @@ async def return_book(
     db: AsyncSession,
     borrow_id: int,
     shelf_id: int,
-    current_user: TokenPayload,
+    user_id: int,
 ) -> BorrowedBook:
 
     borrowed_book = await repo.get_borrowed_book(
@@ -220,7 +220,7 @@ async def return_book(
 
     await audit_service.create_audit_log(
         db=db,
-        actor_user_id=current_user.id,
+        actor_user_id=user_id,
         action_type=AuditAction.RETURN,
         entity_type="BORROWED_BOOK",
         entity_id=str(borrowed_book.id),

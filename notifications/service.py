@@ -25,6 +25,7 @@ from book_copy import repo as book_copy_repo
 from borrowed_book import repo as borrow_repo
 from user import repository as user_repo
 from borrowed_book import service as borrowed_book_service
+from borrowed_book.schema import BorrowBookRequest
 
 
 async def _validate_receiver(
@@ -243,14 +244,26 @@ async def resolve_notification(
             notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
             and notification.status == NotificationStatus.APPROVED
         ):
-            borrowed_book = await borrowed_book_service.get_active_borrow(
-                db,
-                notification.book_copy_id,
+            book_copy = await book_copy_repo.get_book_copy(
+                db, notification.book_copy_id
             )
-            await borrowed_book_service.return_book(db=db, borrowed_book=borrowed_book)
+
+            borrowed_book = await borrow_repo.get_active_borrow(
+                db, notification.book_copy_id
+            )
+            await borrowed_book_service.return_book(
+                db=db,
+                borrow_id=borrowed_book.id,
+                shelf_id=book_copy.shelf_id,
+                user_id=notification.sender_id,
+            )
+
+            borrow_payload = BorrowBookRequest(
+                isbn=book_copy.isbn, shelf_id=book_copy.shelf_id
+            )
             await borrowed_book_service.borrow_book(
                 db=db,
-                book_copy_id=notification.book_copy_id,
+                payload=borrow_payload,
                 user_id=notification.receiver_id,
             )
 

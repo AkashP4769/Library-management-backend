@@ -61,7 +61,7 @@ async def borrow_book(
     return await service.borrow_book(
         db=db,
         payload=payload,
-        current_user=current_user,
+        user_id=current_user.id,
     )
 
 
@@ -123,7 +123,7 @@ async def return_book(
             db=db,
             borrow_id=borrow_id,
             shelf_id=shelf_id,
-            current_user=_current_user,
+            current_user=_current_user.id,
         )
 
     except ValueError as e:

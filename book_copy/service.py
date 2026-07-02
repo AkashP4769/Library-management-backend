@@ -1,3 +1,7 @@
+"""
+Business logic for Inventory.
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from audit import service as audit_service
@@ -11,14 +15,17 @@ from book_copy.schema import (
 from exceptions import NotFoundException
 from models.audit import AuditAction
 from models.book_copy import BookCopy
-
-"""
-Business logic for Inventory.
-"""
+from models.notifications import (
+    NotificationType,
+)
+from notifications.schema import (
+    NotificationCreateRequest,
+)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from book_copy import repo
+from notifications.service import broadcast_admin_notification
 
 
 async def create_book_copy(
@@ -42,6 +49,15 @@ async def create_book_copy(
             new_value=book_copy.to_api_dict(),
         )
 
+    await broadcast_admin_notification(
+        db=db,
+        payload=NotificationCreateRequest(
+            sender_id=actor_user_id,
+            receiver_id=None,  # broadcast
+            message=f"{len(book_copies)} new book copies added to the inventory.",
+            notification_type=NotificationType.ADMIN_NOTIFICATION,
+        ),
+    )
     await db.commit()
 
     return payload
