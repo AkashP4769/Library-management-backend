@@ -45,6 +45,7 @@ async def create_book(
         return await service.create_book(
             db,
             payload,
+            actor_user_id=_current_user.id,
         )
 
     except ValueError as e:
@@ -167,6 +168,7 @@ async def update_book(
             db,
             book_id,
             payload,
+            actor_user_id=_current_user.id,
         )
 
     except ValueError as e:
@@ -190,6 +192,7 @@ async def delete_book(
         await service.delete_book(
             db,
             book_id,
+            actor_user_id=_current_user.id,
         )
 
     except ValueError as e:

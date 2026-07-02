@@ -136,6 +136,11 @@ async def getUserbyId(db: AsyncSession, user_id: int):
 
 
 async def update_user(payload: UpdateUserRequest, db: AsyncSession, user_id: int):
+    previous_user = await repository.get_by_id(db, user_id)
+
+    if previous_user is None:
+        raise ValueError("User not found")
+
     user = await repository.update_user(
         db=db,
         user_id=user_id,
@@ -146,6 +151,16 @@ async def update_user(payload: UpdateUserRequest, db: AsyncSession, user_id: int
 
     if user is None:
         raise ValueError("User not found")
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=user.id,
+        action_type=AuditAction.UPDATE,
+        entity_type="USER",
+        entity_id=str(user.id),
+        old_value=previous_user.to_api_dict(),
+        new_value=user.to_api_dict(),
+    )
 
     return {
         "user_id": user.id,

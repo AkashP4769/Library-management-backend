@@ -48,7 +48,11 @@ async def create(
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
-    shelf = await create_shelf(db, payload)
+    shelf = await create_shelf(
+        db,
+        payload,
+        actor_user_id=_current_user.id,
+    )
     return shelf.to_api_dict()
 
 
@@ -98,6 +102,7 @@ async def update(
         db=db,
         shelf_id=shelf_id,
         payload=payload,
+        actor_user_id=_current_user.id,
     )
 
     if shelf is None:
@@ -114,7 +119,11 @@ async def delete(
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
-    deleted = await delete_shelf(db, shelf_id)
+    deleted = await delete_shelf(
+        db,
+        shelf_id,
+        actor_user_id=_current_user.id,
+    )
 
     if not deleted:
         raise NotFoundException("Shelf Not Found")

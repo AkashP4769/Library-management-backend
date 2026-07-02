@@ -5,9 +5,11 @@ Service layer for Wishlist.
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit import service as audit_service
 from auth.schemas import TokenPayload
 from book import repo as book_repo
 from exceptions import ConflictException, NotFoundException
+from models.audit import AuditAction
 from models.wishlist import Wishlist
 from wishlist import repo
 from wishlist.schemas import (
@@ -61,6 +63,15 @@ async def add_to_wishlist(
             detail="Unable to add book to wishlist."
         )
 
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=current_user.id,
+        action_type=AuditAction.CREATE,
+        entity_type="WISHLIST",
+        entity_id=str(wishlist.id),
+        new_value=wishlist.to_api_dict(),
+    )
+
     return WishlistResponse(
         id=wishlist.id,
         user_id=wishlist.user_id,
@@ -105,6 +116,15 @@ async def remove_from_wishlist(
         raise ConflictException(
             detail="Unable to remove book from wishlist."
         )
+
+    await audit_service.create_audit_log(
+        db=db,
+        actor_user_id=current_user.id,
+        action_type=AuditAction.DELETE,
+        entity_type="WISHLIST",
+        entity_id=str(wishlist.id),
+        old_value=wishlist.to_api_dict(),
+    )
 
 
 async def get_user_wishlist(
