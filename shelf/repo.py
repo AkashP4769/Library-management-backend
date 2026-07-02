@@ -68,6 +68,7 @@ async def update(
     return shelf
 
 
+
 async def delete(
     db: AsyncSession,
     shelf: Shelf,

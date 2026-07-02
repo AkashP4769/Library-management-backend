@@ -11,7 +11,7 @@ from audit import service as audit_service
 from models.book import Book
 from models.shelf import Shelf
 from book.schemas import BookAPIResponse, BookCreateRequest, BookUpdateRequest
-from models.book_copy import BookCopy
+from models.book_copy import BookCopy, BookCopyStatus
 from models.notifications import Notifications, NotificationType
 
 
@@ -266,3 +266,30 @@ async def get_user_requested_books(
     result = await db.execute(query)
 
     return list(result.scalars().unique().all())
+
+
+async def delete_book_copies(
+    db: AsyncSession,
+    isbn: str,
+    shelf_id: int,
+    quantity: int,
+) -> int:
+    stmt = (
+        select(BookCopy)
+        .where(
+            BookCopy.isbn == isbn,
+            BookCopy.shelf_id == shelf_id,
+            BookCopy.status == BookCopyStatus.AVAILABLE,
+        )
+        .order_by(BookCopy.id)
+        .limit(quantity)
+    )
+
+    result = await db.execute(stmt)
+    copies = result.scalars().all()
+    for copy in copies:
+        await db.delete(copy)
+
+    await db.commit()
+
+    return quantity

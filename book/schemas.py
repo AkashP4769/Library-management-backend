@@ -99,3 +99,6 @@ class RequestedBookCopySchema(BaseModel):
     book: BookResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+class DeleteBookfromShelfRequest(BaseModel):
+    quantity: int

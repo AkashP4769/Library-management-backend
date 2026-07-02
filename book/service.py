@@ -15,6 +15,7 @@ from models.audit import AuditAction
 from models.book import Book
 from models.book_copy import BookCopy
 from models.shelf import Shelf
+from shelf.repo import get_books_by_shelf
 from utils import save_image
 
 
@@ -144,6 +145,22 @@ async def update_book(
     await db.commit()        # book + audit log persist together, atomically
     await db.refresh(updated_book)
     return updated_book
+
+async def delete_book_from_shelf(db,shelf_id: int, isbn: str, quantity: int):
+    books = await get_books_by_shelf(db, shelf_id)
+    book = next(
+    (b for b in books if b.isbn == isbn),
+    None,
+)
+
+    if book is None:
+        raise NotFoundException("Book not found on this shelf.")
+
+    if book.available_copies < quantity:
+        raise ConflictException("Not enough available copies to delete.")
+    
+    quantity = await repo.delete_book_copies(db, isbn, shelf_id, quantity)
+    return quantity
 
 
 async def delete_book(
