@@ -4,7 +4,7 @@ Repository layer for Book.
 
 from datetime import datetime
 import requests
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from audit import service as audit_service
@@ -129,18 +129,20 @@ async def get_all(
     q: str | None = None,
     genre: str | None = None,
     language: str | None = None,
-    author: str | None = None,
 ) -> list[Book]:
     # Build the query with optional filters
     filters = [Book.deleted_at.is_(None)]
     if q:
-        filters.append(Book.title.ilike(f"%{q}%"))
+        filters.append(
+        or_(
+            Book.title.ilike(f"%{q}%"),
+            Book.author.ilike(f"%{q}%"),
+        )
+    )
     if genre:
         filters.append(Book.genre.ilike(f"%{genre}%"))
     if language:
         filters.append(Book.language.ilike(f"%{language}%"))
-    if author:
-        filters.append(Book.author.ilike(f"%{q}%"))
     result = await db.execute(select(Book).where(*filters).order_by(Book.title))
 
     return result.scalars().all()

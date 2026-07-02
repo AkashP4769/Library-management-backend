@@ -2,7 +2,7 @@
 Repository layer for Shelf.
 """
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.book import Book
@@ -82,7 +82,6 @@ async def get_books_by_shelf(
     q: str | None = None,
     genre: str |None = None,
     language: str | None = None,
-    author: str | None = None,
 ):
     filters = [
         BookCopy.shelf_id == shelf_id,
@@ -90,13 +89,18 @@ async def get_books_by_shelf(
     ]
 
     if q:
-        filters.append(Book.title.ilike(f"%{q}%"))
+        filters.append(
+        or_(
+            Book.title.ilike(f"%{q}%"),
+            Book.author.ilike(f"%{q}%"),
+        )
+    )
+
     if genre:
         filters.append(Book.genre.ilike(f"%{genre}%"))
     if language:
         filters.append(Book.language.ilike(f"%{language}%"))
-    if author:
-        filters.append(Book.author.ilike(f"%{author}%"))
+    
 
     stmt = (
         select(
