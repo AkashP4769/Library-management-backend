@@ -1,34 +1,29 @@
-from datetime import datetime, timezone
+"""
+Service layer for notifications.
+"""
 
+from datetime import datetime, timezone
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.schemas import TokenPayload
-from exceptions import (
-    BadRequestException,
-    DBException,
-    NotFoundException,
-)
-
+from exceptions import BadRequestException, DBException, NotFoundException
+from models.book_copy import BookCopyStatus
 from models.notifications import (
-    Notifications,
     NotificationStatus,
     NotificationType,
+    Notifications,
 )
-
 from notifications import repo
 from notifications.schema import (
     CreateBorrowRequest,
     NotificationCreateRequest,
     NotificationUpdateRequest,
 )
-
-from user import repository as user_repo
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo as borrow_repo
-from models.book_copy import BookCopy, BookCopyStatus
-from models.borrowed_book import BorrowedBook
+from user import repository as user_repo
 
 
 async def _validate_receiver(
@@ -277,7 +272,6 @@ async def create_request_notification(
     user_id: int,
 ):
     try:
-        # Prevent duplicate request from same sender
         existing_request = await repo.get_user_requests(
             db=db,
             user_id=user_id,
@@ -289,7 +283,6 @@ async def create_request_notification(
         if existing_request:
             raise BadRequestException("Already requested for this book.")
 
-        # Step 1: Get all borrowed books with the given ISBN
         borrowed_books = await borrow_repo.get_active_borrows_by_filter(
             db=db,
             isbn=payload.isbn,
@@ -300,7 +293,6 @@ async def create_request_notification(
 
         created_notifications = []
 
-        # Step 2: Notify all current holders
         for borrowed in borrowed_books:
             notification = Notifications(
                 sender_id=user_id,

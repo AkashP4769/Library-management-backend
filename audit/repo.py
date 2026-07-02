@@ -4,6 +4,7 @@ Repository functions for AuditLog.
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from models.audit import AuditAction, AuditLog
 
@@ -13,7 +14,8 @@ async def create_audit_log(
     audit_log: AuditLog,
 ) -> AuditLog:
     db.add(audit_log)
-    
+    await db.flush()
+    await db.refresh(audit_log)
     return audit_log
 
 
@@ -22,7 +24,9 @@ async def get_audit_log_by_id(
     audit_id: int,
 ) -> AuditLog | None:
     result = await db.execute(
-        select(AuditLog).where(AuditLog.id == audit_id)
+        select(AuditLog)
+        .where(AuditLog.id == audit_id)
+        .options(selectinload(AuditLog.user))
     )
     return result.scalar_one_or_none()
 
@@ -69,6 +73,7 @@ async def get_audit_logs(
         query.order_by(AuditLog.created_at.desc())
         .offset(offset)
         .limit(limit)
+        .options(selectinload(AuditLog.user))
     )
 
     audit_logs = (await db.execute(query)).scalars().all()

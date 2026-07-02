@@ -12,6 +12,7 @@ class AuditLogResponse(BaseModel):
 
     id: int
     actor_user_id: int
+    actor_user_name: str | None = None
     action_type: AuditAction
     entity_type: str
     entity_id: str

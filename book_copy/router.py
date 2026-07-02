@@ -102,7 +102,11 @@ async def create_book_copy(
     db: AsyncSession = Depends(get_db),
     _current_user: TokenPayload = Depends(get_current_user),
 ):
-    return await service.create_book_copy(db, payload)
+    return await service.create_book_copy(
+        db,
+        payload,
+        actor_user_id=_current_user.id,
+    )
 
 
 @router.get(
@@ -168,6 +172,7 @@ async def update_book_copy(
             db,
             copy_id,
             payload,
+            actor_user_id=_current_user.id,
         )
     except ValueError:
         raise NotFoundException("Book Copy Not Found")
@@ -186,6 +191,7 @@ async def delete_book_copy(
         await service.delete_book_copy(
             db,
             copy_id,
+            actor_user_id=_current_user.id,
         )
     except ValueError:
         raise NotFoundException("Book Copy Not Found")

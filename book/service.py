@@ -21,7 +21,7 @@ from utils import save_image
 async def create_book(
     db: AsyncSession,
     payload: BookCreateRequest,
-    actor_user_id: int = 1,
+    actor_user_id: int,
 ) -> Book:
 
     existing = await repo.get_by_isbn(db, payload.isbn)
@@ -49,6 +49,9 @@ async def create_book(
         new_value=book.to_api_dict(),
     )
 
+    
+    await db.commit()        # book + audit log persist together, atomically
+    await db.refresh(book)
     return book
 
 
@@ -137,13 +140,16 @@ async def update_book(
         new_value=updated_book.to_api_dict(),
     )
 
+    
+    await db.commit()        # book + audit log persist together, atomically
+    await db.refresh(updated_book)
     return updated_book
 
 
 async def delete_book(
     db: AsyncSession,
     book_id: int,
-    actor_user_id: int = 1,
+    actor_user_id: int,
 ) -> None:
 
     book = await repo.get_by_id(db, book_id)
@@ -166,6 +172,8 @@ async def delete_book(
         entity_id=book.isbn,
         old_value=old_value,
     )
+    await db.commit()        # book + audit log persist together, atomically
+    await db.refresh(book)
 
 
 async def search_books(

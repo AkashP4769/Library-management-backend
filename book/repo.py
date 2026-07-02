@@ -31,11 +31,9 @@ async def create(
     )
 
     db.add(book)
-    await db.commit()
+    await db.flush()
     await db.refresh(book)
-
     return book
-
 
 async def get_by_id(
     db: AsyncSession,
@@ -157,9 +155,8 @@ async def update(
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(book, key, value)
 
-    await db.commit()
+    await db.flush()
     await db.refresh(book)
-
     return book
 
 
@@ -170,7 +167,7 @@ async def delete(
 
     book.deleted_at = datetime.utcnow()
 
-    await db.commit()
+    await db.flush()
 
 
 async def search(
