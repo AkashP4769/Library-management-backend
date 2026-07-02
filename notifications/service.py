@@ -245,7 +245,6 @@ async def resolve_notification(
                 notification_type=NotificationType.BOOK_RETURN_ACCEPTED,
                 status=NotificationStatus.PENDING,
             )
-            await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
             await repo.create_notification(db, borrow_action)
 
             await _invalidate_other_requests(
@@ -258,6 +257,7 @@ async def resolve_notification(
             notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
             and notification.status == NotificationStatus.APPROVED
         ):
+            await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
             await borrow_repo.borrow_book(
                 db=db,
                 book_copy_id=notification.book_copy_id,
