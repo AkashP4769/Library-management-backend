@@ -1,34 +1,30 @@
-from datetime import datetime, timezone
+"""
+Service layer for notifications.
+"""
 
+from datetime import datetime, timezone
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.schemas import TokenPayload
-from exceptions import (
-    BadRequestException,
-    DBException,
-    NotFoundException,
-)
-
+from exceptions import BadRequestException, DBException, NotFoundException
+from models.book_copy import BookCopyStatus
 from models.notifications import (
-    Notifications,
     NotificationStatus,
     NotificationType,
+    Notifications,
 )
-
 from notifications import repo
 from notifications.schema import (
     CreateBorrowRequest,
     NotificationCreateRequest,
     NotificationUpdateRequest,
 )
-
-from user import repository as user_repo
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo as borrow_repo
-from models.book_copy import BookCopy, BookCopyStatus
-from models.borrowed_book import BorrowedBook
+from user import repository as user_repo
+from borrowed_book import service as borrowed_book_service
 
 
 async def _validate_receiver(
@@ -234,10 +230,6 @@ async def resolve_notification(
             notification.notification_type == NotificationType.REQUEST_BOOK
             and notification.status == NotificationStatus.APPROVED
         ):
-            borrowed_book = await borrow_repo.get_active_borrow(
-                db,
-                notification.book_copy_id,
-            )
             borrow_action = Notifications(
                 receiver_id=notification.sender_id,
                 sender_id=notification.receiver_id,
@@ -247,21 +239,25 @@ async def resolve_notification(
             )
             await repo.create_notification(db, borrow_action)
 
-            await _invalidate_other_requests(
-                db,
-                book_copy_id=notification.book_copy_id,
-                exclude_notification_id=notification.id,
-            )
-
         elif (
             notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
             and notification.status == NotificationStatus.APPROVED
         ):
-            await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
-            await borrow_repo.borrow_book(
+            borrowed_book = await borrowed_book_service.get_active_borrow(
+                db,
+                notification.book_copy_id,
+            )
+            await borrowed_book_service.return_book(db=db, borrowed_book=borrowed_book)
+            await borrowed_book_service.borrow_book(
                 db=db,
                 book_copy_id=notification.book_copy_id,
                 user_id=notification.receiver_id,
+            )
+
+            await _invalidate_other_requests(
+                db,
+                book_copy_id=notification.book_copy_id,
+                exclude_notification_id=notification.id,
             )
 
         return await repo.update_notification(db, notification, payload)
@@ -277,7 +273,6 @@ async def create_request_notification(
     user_id: int,
 ):
     try:
-        # Prevent duplicate request from same sender
         existing_request = await repo.get_user_requests(
             db=db,
             user_id=user_id,
@@ -289,7 +284,6 @@ async def create_request_notification(
         if existing_request:
             raise BadRequestException("Already requested for this book.")
 
-        # Step 1: Get all borrowed books with the given ISBN
         borrowed_books = await borrow_repo.get_active_borrows_by_filter(
             db=db,
             isbn=payload.isbn,
@@ -300,7 +294,6 @@ async def create_request_notification(
 
         created_notifications = []
 
-        # Step 2: Notify all current holders
         for borrowed in borrowed_books:
             notification = Notifications(
                 sender_id=user_id,

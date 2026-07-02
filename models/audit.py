@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models import Entity
+from models.user import User
 
 
 def _datetime_to_iso(value: datetime |None) -> str | None:
@@ -76,10 +77,17 @@ class AuditLog(Entity):
         back_populates="audit_logs",
     )
 
+    @property
+    def actor_user_name(self) -> str | None:
+        if self.user is None:
+            return None
+        return self.user.name
+
     def to_api_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "actor_user_id": self.actor_user_id,
+            "actor_user_name": self.actor_user_name,
             "action_type": self.action_type.value,
             "entity_type": self.entity_type,
             "entity_id": self.entity_id,
