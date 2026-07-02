@@ -24,6 +24,7 @@ from notifications.schema import (
 from book_copy import repo as book_copy_repo
 from borrowed_book import repo as borrow_repo
 from user import repository as user_repo
+from borrowed_book import service as borrowed_book_service
 
 
 async def _validate_receiver(
@@ -229,10 +230,6 @@ async def resolve_notification(
             notification.notification_type == NotificationType.REQUEST_BOOK
             and notification.status == NotificationStatus.APPROVED
         ):
-            borrowed_book = await borrow_repo.get_active_borrow(
-                db,
-                notification.book_copy_id,
-            )
             borrow_action = Notifications(
                 receiver_id=notification.sender_id,
                 sender_id=notification.receiver_id,
@@ -242,21 +239,25 @@ async def resolve_notification(
             )
             await repo.create_notification(db, borrow_action)
 
-            await _invalidate_other_requests(
-                db,
-                book_copy_id=notification.book_copy_id,
-                exclude_notification_id=notification.id,
-            )
-
         elif (
             notification.notification_type == NotificationType.BOOK_RETURN_ACCEPTED
             and notification.status == NotificationStatus.APPROVED
         ):
-            await borrow_repo.return_book(db=db, borrowed_book=borrowed_book)
-            await borrow_repo.borrow_book(
+            borrowed_book = await borrowed_book_service.get_active_borrow(
+                db,
+                notification.book_copy_id,
+            )
+            await borrowed_book_service.return_book(db=db, borrowed_book=borrowed_book)
+            await borrowed_book_service.borrow_book(
                 db=db,
                 book_copy_id=notification.book_copy_id,
                 user_id=notification.receiver_id,
+            )
+
+            await _invalidate_other_requests(
+                db,
+                book_copy_id=notification.book_copy_id,
+                exclude_notification_id=notification.id,
             )
 
         return await repo.update_notification(db, notification, payload)
